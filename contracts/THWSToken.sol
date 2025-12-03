@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract THWSToken is ERC20, Ownable {
 
-    constructor() ERC20("THWS Token", "THWS") {
+    constructor() ERC20("THWS Token", "THWS") Ownable(msg.sender) {
         // İstersen ilk mint burada yapılabilir
         // _mint(msg.sender, 100000 * 10 ** decimals());
     }
