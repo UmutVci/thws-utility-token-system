@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Hardhat / Node build outputs
+node_modules/
+artifacts/
+cache/
