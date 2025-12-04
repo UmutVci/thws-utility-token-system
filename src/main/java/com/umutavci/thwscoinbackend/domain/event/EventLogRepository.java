@@ -1,2 +1,6 @@
-package com.umutavci.thwscoinbackend.domain.event;public class EventLogRepository {
+package com.umutavci.thwscoinbackend.domain.event;
+
+public interface EventLogRepository {
+    boolean exists(String eventId);
+    void save(EventLog log);
 }

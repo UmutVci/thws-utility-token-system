@@ -1,6 +1,5 @@
-package com.umutavci.thwscoinbackend.infrastructure.jpa;
+package com.umutavci.thwscoinbackend.infrastructure.jpa.mensa_order;
 
-import com.umutavci.thwscoinbackend.domain.mensa.MensaOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

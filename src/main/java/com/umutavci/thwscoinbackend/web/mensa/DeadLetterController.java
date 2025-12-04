@@ -19,7 +19,6 @@ public class DeadLetterController {
     private final DeadLetterEventJpaRepository repo;
     private final MensaOrderUseCases mensaUseCases;
 
-
     @PostMapping("/{id}/reprocess")
     public ResponseEntity<?> reprocess(@PathVariable Long id) {
 

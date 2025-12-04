@@ -1,8 +1,7 @@
-package com.umutavci.thwscoinbackend.infrastructure.jpa;
+package com.umutavci.thwscoinbackend.infrastructure.jpa.mensa_order;
 
 import com.umutavci.thwscoinbackend.domain.mensa.MensaOrder;
 import com.umutavci.thwscoinbackend.domain.mensa.MensaOrderRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
