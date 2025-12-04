@@ -59,7 +59,8 @@ contract PaymentManager is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         bytes32 indexed service,
         address indexed payer,
         address indexed recipient,
-        uint256 amount
+        uint256 amount,
+        uint256 orderId
     );
 
     event LaundryPayment(
@@ -189,51 +190,73 @@ contract PaymentManager is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     // Payment flows
     // -----------------------
 
-    function payService(bytes32 service, uint256 amount) external nonReentrant whenNotPaused {
-        address recipient = serviceWallets[service];
-        if (recipient == address(0)) revert WalletNotConfigured(service);
-        uint256 price = servicePrices[service];
-        if (price == 0) revert PriceNotConfigured(service);
-        if (amount != price) revert AmountMismatch(price, amount);
+    function payService(bytes32 service, uint256 amount, uint256 orderId)
+    external 
+    nonReentrant 
+    whenNotPaused 
+{
+    address recipient = serviceWallets[service];
+    if (recipient == address(0)) revert WalletNotConfigured(service);
 
-        _transferFromPayer(msg.sender, recipient, price);
+    uint256 price = servicePrices[service];
+    if (price == 0) revert PriceNotConfigured(service);
+    if (amount != price) revert AmountMismatch(price, amount);
 
-        emit ServicePayment(service, msg.sender, recipient, amount);
-    }
+    _transferFromPayer(msg.sender, recipient, price);
+
+    emit ServicePayment(service, msg.sender, recipient, amount, orderId);
+}
+
 
     /// @notice Mensa dynamic payment with off-chain signature (prevents tampering with amount)
     function payServiceWithSig(
-        bytes32 service,
-        uint256 amount,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external nonReentrant whenNotPaused {
-        if (block.timestamp > expiry) revert InvalidDuration();
-        address signer = serviceSigners[service];
-        if (signer == address(0)) revert WalletNotConfigured(service);
+    bytes32 service,
+    uint256 amount,
+    uint256 orderId,
+    uint256 expiry,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+) 
+    external 
+    nonReentrant 
+    whenNotPaused 
+{
+    if (block.timestamp > expiry) revert InvalidDuration();
 
-        address recipient = serviceWallets[service];
-        if (recipient == address(0)) revert WalletNotConfigured(service);
-        if (amount == 0) revert InvalidAmount();
+    address signer = serviceSigners[service];
+    if (signer == address(0)) revert WalletNotConfigured(service);
 
-        uint256 nonce = nonces[msg.sender];
-        bytes32 structHash = keccak256(
-            abi.encode(PAYMENT_TYPEHASH, service, amount, msg.sender, nonce, expiry)
-        );
-        bytes32 digest = _hashTypedDataV4(structHash);
+    address recipient = serviceWallets[service];
+    if (recipient == address(0)) revert WalletNotConfigured(service);
+    if (amount == 0) revert InvalidAmount();
 
-        address recovered = ECDSA.recover(digest, v, r, s);
-        if (recovered != signer) revert WalletNotConfigured(service);
+    uint256 nonce = nonces[msg.sender];
+    
+    bytes32 structHash = keccak256(
+        abi.encode(
+            PAYMENT_TYPEHASH,
+            service,
+            amount,
+            msg.sender,
+            nonce,
+            expiry
+        )
+    );
 
-        unchecked {
-            nonces[msg.sender] = nonce + 1;
-        }
+    bytes32 digest = _hashTypedDataV4(structHash);
+    address recovered = ECDSA.recover(digest, v, r, s);
+    if (recovered != signer) revert WalletNotConfigured(service);
 
-        _transferFromPayer(msg.sender, recipient, amount);
-        emit ServicePayment(service, msg.sender, recipient, amount);
+    unchecked {
+        nonces[msg.sender] = nonce + 1;
     }
+
+    _transferFromPayer(msg.sender, recipient, amount);
+
+    emit ServicePayment(service, msg.sender, recipient, amount, orderId);
+}
+
 
     function payLaundry(bytes32 dormCode, uint256 machineId) external nonReentrant whenNotPaused {
         address wallet = laundryWallets[dormCode];
