@@ -51,9 +51,10 @@ describe("PaymentManager", function () {
 
     await token.connect(student).approve(manager.target, amount);
 
-    await expect(manager.connect(student).payService(mensaService, amount))
+    const orderId = 1n;
+    await expect(manager.connect(student).payService(mensaService, amount, orderId))
       .to.emit(manager, "ServicePayment")
-      .withArgs(mensaService, student.address, mensa.address, amount);
+      .withArgs(mensaService, student.address, mensa.address, amount, orderId);
 
     expect(await token.balanceOf(mensa.address)).to.equal(amount);
   });
@@ -115,12 +116,12 @@ describe("PaymentManager", function () {
     await manager.setServiceWallet(missingService, mensa.address);
     await token.connect(student).approve(manager.target, 1_000);
 
-    await expect(manager.connect(student).payService(missingService, 100))
+    await expect(manager.connect(student).payService(missingService, 100, 1))
       .to.be.revertedWithCustomError(manager, "PriceNotConfigured")
       .withArgs(missingService);
 
     const service = ethers.encodeBytes32String("MENSA"); // price = 500
-    await expect(manager.connect(student).payService(service, 499))
+    await expect(manager.connect(student).payService(service, 499, 1))
       .to.be.revertedWithCustomError(manager, "AmountMismatch")
       .withArgs(500, 499);
   });
