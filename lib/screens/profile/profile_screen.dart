@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+
 import 'help_and_support_screen.dart';
+import 'security_privacy_screen.dart';
+
+// ✅ Logout Ziel
+import '../role/role_selection_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -12,9 +17,9 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   bool autoLoadEnabled = false;
 
-  // ✅ NEU: Umschalten zwischen Profil und Hilfe&Support,
-  // ohne Navigator.push -> BottomNav bleibt sichtbar
+  // ✅ Umschalten ohne Navigator.push -> BottomNav bleibt sichtbar
   bool _showHelpSupport = false;
+  bool _showSecurityPrivacy = false;
 
   final Map<String, String> studentData = {
     'name': 'Max Mustermann',
@@ -32,8 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    cardId =
-        'THWS-ID:${studentData['id']}:${DateTime.now().millisecondsSinceEpoch}';
+    cardId = 'THWS-ID:${studentData['id']}:${DateTime.now().millisecondsSinceEpoch}';
   }
 
   @override
@@ -41,6 +45,12 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_showHelpSupport) {
       return HelpSupportScreen(
         onBack: () => setState(() => _showHelpSupport = false),
+      );
+    }
+
+    if (_showSecurityPrivacy) {
+      return SecurityPrivacyScreen(
+        onBack: () => setState(() => _showSecurityPrivacy = false),
       );
     }
 
@@ -66,6 +76,14 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
+    );
+  }
+
+  // ✅ Logout -> RoleSelectionScreen (Stack leeren)
+  void _logoutToRoleSelection() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+      (route) => false,
     );
   }
 
@@ -321,8 +339,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           _infoRow(Icons.school_outlined, 'Studiengang', studentData['course']!),
-          _infoRow(Icons.calendar_today_outlined, 'Semester',
-              studentData['semester']!),
+          _infoRow(Icons.calendar_today_outlined, 'Semester', studentData['semester']!),
           _infoRow(Icons.location_on_outlined, 'Campus', studentData['campus']!),
           _infoRow(Icons.mail_outline, 'E-Mail', studentData['email']!),
           _infoRow(Icons.phone_outlined, 'Telefon', studentData['phone']!),
@@ -345,6 +362,7 @@ class _ProfilePageState extends State<ProfilePage> {
               fontWeight: FontWeight.w600)),
     );
   }
+
   // -----------------------
   // Menü
   // -----------------------
@@ -363,7 +381,7 @@ class _ProfilePageState extends State<ProfilePage> {
               badge: '3', onTap: () {}),
           _divider(),
           _menuItem(Icons.shield_outlined, 'Sicherheit & Datenschutz',
-              onTap: () {}),
+              onTap: () => setState(() => _showSecurityPrivacy = true)),
           _divider(),
           _menuItem(Icons.credit_card_outlined, 'Zahlungsmethoden', onTap: () {}),
           _divider(),
@@ -400,8 +418,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             if (badge != null) ...[
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEF4444),
                   borderRadius: BorderRadius.circular(999),
@@ -463,11 +480,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // -----------------------
-  // Logout
+  // Logout (✅ klickbar)
   // -----------------------
   Widget _logoutButton() {
     return OutlinedButton.icon(
-      onPressed: () {},
+      onPressed: _logoutToRoleSelection, // ✅ geändert
       icon: const Icon(Icons.logout, color: Color(0xFFEF4444)),
       label: const Text('Abmelden',
           style: TextStyle(
