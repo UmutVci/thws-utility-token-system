@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'modals/add_money_modal.dart';
+import 'add_money/modals/add_money_modal.dart';
+import 'payment/payment_qr_screen.dart';
+
+
+
 
 class WalletBalanceCard extends StatelessWidget {
   const WalletBalanceCard({super.key});
@@ -67,11 +71,19 @@ class WalletBalanceCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: _ActionButton(
                   icon: Icons.qr_code,
                   label: 'Zahlen',
                   filled: true,
+                  onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const PaymentQrScreen(),
+        ),
+      );
+    },
                 ),
               ),
             ],
