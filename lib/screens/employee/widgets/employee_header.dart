@@ -40,7 +40,7 @@ class EmployeeHeader extends StatelessWidget {
               color: const Color(0xFFB0D08A),
               borderRadius: BorderRadius.circular(14),
             ),
-           child: const Icon(Icons.arrow_forward, color: Color(0xFF3E581E)),
+           child: const Icon(Icons.logout, color: Color(0xFF3E581E)),
           ),
         ],
       ),
