@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HelpSupportScreen extends StatelessWidget {
-  const HelpSupportScreen({super.key});
+  final VoidCallback? onBack;
+  const HelpSupportScreen({super.key, this.onBack});
 
   static const String _hotlineLabel = '+49 0931 135 65 84';
   static const String _hotlineTel = 'tel:+499311356584';
@@ -17,17 +18,25 @@ class HelpSupportScreen extends StatelessWidget {
       color: const Color(0xFFF1F5F9),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Hilfe & Support',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: onBack,
+                    icon: const Icon(Icons.arrow_back),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Hilfe & Support',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
 
-              // --- Hotline / Mail Quick Actions ---
               Row(
                 children: [
                   Expanded(
@@ -49,23 +58,23 @@ class HelpSupportScreen extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
 
-              // --- Links (nur THWS-relevant) ---
-              const _LinkCard(
+              _LinkCard(
                 title: 'THWS – HSST (Hochschulservice Studium)',
-                subtitle: 'Organisation, Services und Anlaufstellen rund ums Studium.',
+                subtitle:
+                    'Organisation, Services und Anlaufstellen rund ums Studium.',
                 url:
                     'https://www.thws.de/hochschule/organisation/hochschulservices/hochschulservice-studium/',
-                leading: _LogoCircle(assetPath: 'assets/icons/thws.png'),
+                leading: const _LogoCircle(assetPath: 'assets/icons/thws.png'),
               ),
 
-              const _LinkCard(
+              _LinkCard(
                 title: 'Studierendenwerk Würzburg – Offene Beratung',
-                subtitle: 'Sozialberatung, Unterstützung & Beratung für Studierende.',
+                subtitle:
+                    'Sozialberatung, Unterstützung & Beratung für Studierende.',
                 url: 'https://www.swerk-wue.de/beratung/offenes-beratungsangebot',
-                leading: _LogoCircle(assetPath: 'assets/icons/swerk.png'),
+                leading: const _LogoCircle(assetPath: 'assets/icons/swerk.png'),
               ),
             ],
           ),
@@ -122,14 +131,12 @@ class _ActionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
+                    Text(title,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        )),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
@@ -182,24 +189,17 @@ class _LinkCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
+                    Text(title,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        )),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                        height: 1.2,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.2),
                     ),
-                    // URL bewusst NICHT anzeigen ✅
                   ],
                 ),
               ),
@@ -231,7 +231,10 @@ class _LogoCircle extends StatelessWidget {
       child: Image.asset(
         assetPath,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined, color: Color(0xFF94A3B8)),
+        errorBuilder: (_, __, ___) => const Icon(
+          Icons.image_not_supported_outlined,
+          color: Color(0xFF94A3B8),
+        ),
       ),
     );
   }
