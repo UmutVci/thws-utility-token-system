@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../role/role_selection_screen.dart';
 
 class EmployeeHeader extends StatelessWidget {
   const EmployeeHeader({super.key});
@@ -40,7 +41,21 @@ class EmployeeHeader extends StatelessWidget {
               color: const Color(0xFFB0D08A),
               borderRadius: BorderRadius.circular(14),
             ),
-           child: const Icon(Icons.logout, color: Color(0xFF3E581E)),
+          child: IconButton(
+  icon: const Icon(
+    Icons.logout,
+    color: Color(0xFF3E581E),
+  ),
+  onPressed: () {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const RoleSelectionScreen(),
+      ),
+      (route) => false,
+    );
+  },
+),
+
           ),
         ],
       ),
