@@ -5,8 +5,14 @@ import 'payment/payment_qr_screen.dart';
 
 
 
-class WalletBalanceCard extends StatelessWidget {
+class WalletBalanceCard extends StatefulWidget {
   const WalletBalanceCard({super.key});
+@override
+  State<WalletBalanceCard> createState() => _WalletBalanceCardState();
+}
+
+class _WalletBalanceCardState extends State<WalletBalanceCard> {
+  bool _isBalanceVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,26 +35,50 @@ class WalletBalanceCard extends StatelessWidget {
           // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children:  [
               Text(
                 'THWS Coin Guthaben',
                 style: TextStyle(color: Colors.white70),
               ),
-              Icon(Icons.visibility, color: Colors.white),
+             GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isBalanceVisible = !_isBalanceVisible;
+                  });
+                },
+                child: Icon(
+                  _isBalanceVisible
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
 
           const SizedBox(height: 12),
 
           // Balance
-          const Text(
-            '125,00 THWS',
-            style: TextStyle(
+         Text(
+            _isBalanceVisible ? '125,00 THWS' : '••••• THWS',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
+
+  if (_isBalanceVisible) ...[
+      const SizedBox(height: 4),
+      const Text(
+        '≈ 47,85 €',
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ],
 
           const SizedBox(height: 16),
 
@@ -90,7 +120,8 @@ class WalletBalanceCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+      );
+    
   }
 }
 
