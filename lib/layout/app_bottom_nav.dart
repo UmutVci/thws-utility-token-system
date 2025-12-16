@@ -41,18 +41,14 @@ class AppBottomNav extends StatelessWidget {
             selected: currentIndex == 1,
             onTap: () => onTap(1),
           ),
-          _NavItem(
-            icon: Icons.badge_outlined,
-            label: 'Ausweis',
-            selected: currentIndex == 2,
-            onTap: () => onTap(2),
-          ),
-          _NavItem(
-            icon: Icons.person_outline,
-            label: 'Profil',
-            selected: currentIndex == 3,
-            onTap: () => onTap(3),
-          ),
+          
+         _NavItem(
+  icon: Icons.person_outline,
+  label: 'Profil',
+  selected: currentIndex == 2, // <-- war 3
+  onTap: () => onTap(2),       // <-- war 3
+),
+
         ],
       ),
     );
