@@ -12,6 +12,35 @@ class HelpSupportScreen extends StatelessWidget {
   static const String _mailTo =
       'mailto:info@thws-token.com?subject=Support%20Anfrage&body=Hallo%20THWS%20Token%20Team,%0A%0A';
 
+  // ✅ FAQ Daten
+  static const _faqs = <(String q, String a)>[
+    (
+      'Wie bekomme ich THWS Token?',
+      'Du kannst Tokens über die Wallet-Funktion in der App erhalten bzw. aufladen. '
+          'Falls du Probleme hast, melde dich über Hotline oder E-Mail.'
+    ),
+    (
+      'Warum sehe ich meinen QR-Code nicht?',
+      'Prüfe, ob qr_flutter korrekt installiert ist und starte die App einmal komplett neu '
+          '(nicht nur Hot Reload). Auf Web hilft oft Hard Reload (Strg+Shift+R).'
+    ),
+    (
+      'Wie funktioniert der digitale Ausweis?',
+      'Der Ausweis zeigt deine Studiendaten und einen QR-Code zur Identifikation. '
+          'Der QR-Code enthält eine ID, die zur Verifizierung genutzt wird.'
+    ),
+    (
+      'Hotline / Telefon klappt nicht im Browser – warum?',
+      'Auf Flutter Web funktionieren tel:-Links nicht immer (Browser-Einschränkung). '
+          'Auf Smartphone/Tablet öffnet sich die Telefon-App automatisch.'
+    ),
+    (
+      'E-Mail öffnet sich nicht – was kann ich tun?',
+      'Stelle sicher, dass eine Standard-Mail-App eingerichtet ist. '
+          'Alternativ kannst du uns direkt an info@thws-token.com schreiben.'
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -37,6 +66,7 @@ class HelpSupportScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
+              // Hotline & Mail
               Row(
                 children: [
                   Expanded(
@@ -60,6 +90,7 @@ class HelpSupportScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
+              // Links
               _LinkCard(
                 title: 'THWS – HSST (Hochschulservice Studium)',
                 subtitle:
@@ -75,6 +106,68 @@ class HelpSupportScreen extends StatelessWidget {
                     'Sozialberatung, Unterstützung & Beratung für Studierende.',
                 url: 'https://www.swerk-wue.de/beratung/offenes-beratungsangebot',
                 leading: const _LogoCircle(assetPath: 'assets/icons/swerk.png'),
+              ),
+
+              const SizedBox(height: 14),
+
+              // ✅ FAQ Bereich
+              const Text(
+                'FAQ',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _faqs.length; i++) ...[
+                      Theme(
+                        data: Theme.of(context)
+                            .copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          childrenPadding:
+                              const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                          title: Text(
+                            _faqs[i].$1,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          children: [
+                           Align(
+  alignment: Alignment.centerLeft,
+  child: Text(
+    _faqs[i].$2,
+    textAlign: TextAlign.left,
+    style: const TextStyle(
+      fontSize: 12,
+      color: Color(0xFF64748B),
+      height: 1.4,
+    ),
+  ),
+),
+
+                          ],
+                        ),
+                      ),
+                      if (i != _faqs.length - 1)
+                        const Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: Color(0xFFF1F5F9),
+                        ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -131,16 +224,19 @@ class _ActionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                        )),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF64748B)),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -189,16 +285,22 @@ class _LinkCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                        )),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.2),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        height: 1.2,
+                      ),
                     ),
                   ],
                 ),
