@@ -6,11 +6,16 @@ class UserLoginScreen extends StatelessWidget {
   const UserLoginScreen({super.key});
 
   void _openForgotPassword() async {
-    const url = 'https://itsc.thws.de/kennwort/';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    }
-  }
+  final uri = Uri.parse(
+    'https://studierendenportal.thws.de/password-reset',
+  );
+
+  await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
