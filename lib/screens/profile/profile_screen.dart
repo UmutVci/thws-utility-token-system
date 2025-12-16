@@ -56,10 +56,6 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 14),
             _infoCard(),
             const SizedBox(height: 12),
-            _blockchainInfo(),
-            const SizedBox(height: 16),
-            _quickSettings(),
-            const SizedBox(height: 12),
             _menuList(),
             const SizedBox(height: 12),
             _appInfoCard(),
@@ -349,100 +345,6 @@ class _ProfilePageState extends State<ProfilePage> {
               fontWeight: FontWeight.w600)),
     );
   }
-
-  // -----------------------
-  // Blockchain Info
-  // -----------------------
-  Widget _blockchainInfo() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: const [
-          Icon(Icons.info_outline, color: Colors.white70),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Blockchain-gesichert',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700)),
-                SizedBox(height: 4),
-                Text(
-                  'Ihre Studierendendaten sind manipulationssicher auf der Blockchain gespeichert.',
-                  style: TextStyle(
-                      color: Colors.white70, fontSize: 12, height: 1.3),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // -----------------------
-  // Schnelleinstellungen
-  // -----------------------
-  Widget _quickSettings() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Schnelleinstellungen',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Icon(Icons.flash_on_outlined,
-                    color: Color(0xFF2563EB)),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Auto-Load (SEPA)',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w700)),
-                    SizedBox(height: 2),
-                    Text('Automatisch bei niedrigem Guthaben',
-                        style:
-                            TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                  ],
-                ),
-              ),
-              Switch(value: autoLoadEnabled, onChanged: _toggleAutoLoad),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _toggleAutoLoad(bool v) {
-    setState(() => autoLoadEnabled = v);
-  }
-
   // -----------------------
   // Menü
   // -----------------------
@@ -586,7 +488,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return const Column(
       children: [
         Text(
-          '© 2024 THWS - Technische Hochschule Würzburg-Schweinfurt',
+          '© 2025 THWS - Technische Hochschule Würzburg-Schweinfurt',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
         ),
