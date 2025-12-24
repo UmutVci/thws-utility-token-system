@@ -161,12 +161,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Technische Hochschule',
+                        Text('Elektronischer Studentenausweis',
                             style: TextStyle(
                                 color: Color(0xFFBFDBFE), fontSize: 12)),
                         SizedBox(height: 4),
                         Text(
-                          'Würzburg-Schweinfurt',
+                          'Technische Hochschule Würzburg-Schweinfurt',
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -375,11 +375,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Column(
         children: [
-          _menuItem(Icons.settings_outlined, 'Einstellungen', onTap: () {}),
-          _divider(),
-          _menuItem(Icons.notifications_none_outlined, 'Benachrichtigungen',
-              badge: '3', onTap: () {}),
-          _divider(),
           _menuItem(Icons.shield_outlined, 'Sicherheit & Datenschutz',
               onTap: () => setState(() => _showSecurityPrivacy = true)),
           _divider(),
