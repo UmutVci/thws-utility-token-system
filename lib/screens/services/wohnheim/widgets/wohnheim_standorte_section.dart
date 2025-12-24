@@ -273,8 +273,14 @@ class _WohnheimItem extends StatelessWidget {
                 onPressed: () => _openMachines(context),
                 icon: const Icon(Icons.local_laundry_service, color: Color(0xFF2563EB)),
                 label: const Text(
-                  'Waschmaschinen anzeigen',
-                  style: TextStyle(color: Color(0xFF2563EB)),
+                  'Waschmaschinen\nanzeigen',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF2563EB),
+                    height: 1.1,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
