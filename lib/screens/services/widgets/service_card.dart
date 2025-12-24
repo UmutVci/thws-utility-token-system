@@ -6,6 +6,8 @@ class ServiceCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String? badge;
+  final VoidCallback? onTap;
+
 
   const ServiceCard({
     super.key,
@@ -14,11 +16,14 @@ class ServiceCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.badge,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -79,6 +84,8 @@ class ServiceCard extends StatelessWidget {
             ),
         ],
       ),
+    
+    ),
     );
   }
 }
