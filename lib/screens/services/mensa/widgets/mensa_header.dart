@@ -12,32 +12,42 @@ class MensaHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 170, // 🔑 mock’a yakın, kısa
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      height: 230,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       decoration: const BoxDecoration(
-        color: Color(0xFF2F54EB),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(18),  // 🔑 daha az radius
-          bottomRight: Radius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2F5BEA),
+            Color(0xFF2746C7),
+          ],
         ),
+        borderRadius: BorderRadius.zero,
       ),
       child: SafeArea(
         bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: onBack,
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: onBack,
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 24),
             const Text(
               'Mensa & Cafeteria',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 22, // 🔑 mock’a daha yakın
+                fontSize: 22,
                 fontWeight: FontWeight.w700,
               ),
             ),

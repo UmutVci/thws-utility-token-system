@@ -5,10 +5,12 @@ import 'wallet_all_transactions_screen.dart';
 
 class WalletTransactionsSection extends StatelessWidget {
   final List<TransactionItem> transactions;
+  final List<TransactionItem> allTransactions;
 
   const WalletTransactionsSection({
     super.key,
     required this.transactions,
+    required this.allTransactions,
   });
 
   @override
@@ -29,7 +31,7 @@ class WalletTransactionsSection extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => WalletAllTransactionsScreen(
-                      transactions: transactions,
+                      transactions: allTransactions,
                     ),
                   ),
                 );

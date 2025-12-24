@@ -58,7 +58,9 @@ class WalletScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final transactions = _mockTransactions();
+    final allTransactions = _mockTransactions();
+    final recentTransactions =
+        allTransactions.length > 3 ? allTransactions.take(3).toList() : allTransactions;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -73,7 +75,8 @@ class WalletScreen extends StatelessWidget {
             const WalletStatsRow(),
             const SizedBox(height: 24),
             WalletTransactionsSection(
-              transactions: transactions,
+              transactions: recentTransactions,
+              allTransactions: allTransactions,
             ),
           ],
         ),

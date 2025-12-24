@@ -41,19 +41,29 @@ class _ServicesScreenState extends State<ServicesScreen> {
         break;
 
       case ServicesView.mensa:
-        content = MensaCafeteriaPage(
-          onBack: () {
-            setState(() {
-              _view = ServicesView.grid;
-            });
+        content = LayoutBuilder(
+          builder: (context, constraints) {
+            return ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: MensaCafeteriaPage(
+                onBack: () {
+                  setState(() {
+                    _view = ServicesView.grid;
+                  });
+                },
+              ),
+            );
           },
         );
         break;
     }
 
+    final EdgeInsets contentPadding =
+        _view == ServicesView.mensa ? EdgeInsets.zero : const EdgeInsets.all(20);
+
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: contentPadding,
         child: content,
       ),
     );
