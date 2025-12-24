@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'services_header.dart';
 import 'widgets/services_grid.dart';
 import 'mensa/mensa_cafeteria_page.dart';
+import 'wohnheim/wohnheim_page.dart';
 
 enum ServicesView {
   grid,
   mensa,
+  wohnheim,
 }
 
 class ServicesScreen extends StatefulWidget {
@@ -35,6 +37,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
                   _view = ServicesView.mensa;
                 });
               },
+              onWohnheimTap: () {
+                setState(() {
+                  _view = ServicesView.wohnheim;
+                });
+              },
             ),
           ],
         );
@@ -56,10 +63,28 @@ class _ServicesScreenState extends State<ServicesScreen> {
           },
         );
         break;
+
+      case ServicesView.wohnheim:
+        content = LayoutBuilder(
+          builder: (context, constraints) {
+            return ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: WohnheimPage(
+                onBack: () {
+                  setState(() {
+                    _view = ServicesView.grid;
+                  });
+                },
+              ),
+            );
+          },
+        );
+        break;
     }
 
-    final EdgeInsets contentPadding =
-        _view == ServicesView.mensa ? EdgeInsets.zero : const EdgeInsets.all(20);
+    final EdgeInsets contentPadding = (_view == ServicesView.mensa || _view == ServicesView.wohnheim)
+        ? EdgeInsets.zero
+        : const EdgeInsets.all(20);
 
     return SafeArea(
       child: SingleChildScrollView(

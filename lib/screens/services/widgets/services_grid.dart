@@ -4,10 +4,12 @@ import 'service_info_box.dart';
 
 class ServicesGrid extends StatelessWidget {
   final VoidCallback onMensaTap;
+  final VoidCallback onWohnheimTap;
 
   const ServicesGrid({
     super.key,
     required this.onMensaTap,
+    required this.onWohnheimTap,
   });
 
   @override
@@ -27,25 +29,26 @@ class ServicesGrid extends StatelessWidget {
               iconBg: const Color(0xFFFFEED6),
               title: 'Mensa & Cafeteria',
               subtitle: 'Bezahlung in allen Mensen',
-              onTap: onMensaTap, // 🔑 sadece callback
+              onTap: onMensaTap,
             ),
             const ServiceCard(
               icon: Icons.menu_book,
               iconBg: Color(0xFFEDE3FF),
               title: 'Bibliothek',
-              subtitle: 'Ausleihen & Gebühren',
+              subtitle: 'Ausleihen & Gebuehren',
             ),
-            const ServiceCard(
+            ServiceCard(
               icon: Icons.home,
-              iconBg: Color(0xFFE6F0FF),
+              iconBg: const Color(0xFFE6F0FF),
               title: 'Wohnheim',
-              subtitle: 'Waschmaschine & Services',
+              subtitle: 'Standorte & Services',
+              onTap: onWohnheimTap,
             ),
             const ServiceCard(
               icon: Icons.confirmation_number,
               iconBg: Color(0xFFE8F9EC),
               title: 'Semesterticket',
-              subtitle: 'Digitales Ticket WÜ-Region',
+              subtitle: 'Digitales Ticket W-Region',
               badge: 'Neu',
             ),
             const ServiceCard(

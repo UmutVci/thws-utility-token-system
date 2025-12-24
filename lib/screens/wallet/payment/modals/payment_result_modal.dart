@@ -67,7 +67,7 @@ class _PaymentResultModalState extends State<PaymentResultModal> {
             height: 48,
             child: ElevatedButton(
               onPressed: widget.onClose,
-              child: const Text('Zurück zur Wallet'),
+              child: const Text('Zurück'),
             ),
           ),
         ],
