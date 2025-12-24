@@ -6,14 +6,16 @@ import '../screens/profile/profile_screen.dart';
 import 'app_bottom_nav.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  final int initialIndex;
+
+  const MainLayout({super.key, this.initialIndex = 0});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 0;
+  late int _currentIndex = widget.initialIndex;
 
  final List<Widget> _pages = const [
   WalletScreen(),

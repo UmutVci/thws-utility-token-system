@@ -74,12 +74,38 @@ class _WalletScreenState extends State<WalletScreen> {
         amount: 20.00,
         isExpense: false,
       ),
+      TransactionItem(
+        title: "Kaffeeautomat",
+        subtitle: "Gestern, 08:45",
+        amount: -1.80,
+        isExpense: true,
+      ),
+      TransactionItem(
+        title: "Mensa SHL",
+        subtitle: "12.03., 12:20",
+        amount: -5.20,
+        isExpense: true,
+      ),
+      TransactionItem(
+        title: "THWS Rueckerstattung",
+        subtitle: "11.03., 17:05",
+        amount: 10.00,
+        isExpense: false,
+      ),
+      TransactionItem(
+        title: "Bibliothek Gebuehr",
+        subtitle: "10.03., 15:10",
+        amount: -1.50,
+        isExpense: true,
+      ),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final transactions = _mockTransactions();
+    final allTransactions = _mockTransactions();
+    final recentTransactions =
+        allTransactions.length > 3 ? allTransactions.take(3).toList() : allTransactions;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -103,7 +129,8 @@ class _WalletScreenState extends State<WalletScreen> {
             const WalletStatsRow(),
             const SizedBox(height: 24),
             WalletTransactionsSection(
-              transactions: transactions,
+              transactions: recentTransactions,
+              allTransactions: allTransactions,
             ),
           ],
         ),
