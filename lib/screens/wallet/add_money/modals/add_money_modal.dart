@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
 
+/// ================= ENUM =================
+/// ⚠️ Enum MUTLAKA dosya seviyesinde olmalı
+enum PaymentMethod {
+  sepa,
+  card,
+  paypal,
+}
+
+/// ================= MODAL =================
+
 class AddMoneyModal extends StatefulWidget {
   const AddMoneyModal({super.key});
 
@@ -9,7 +19,7 @@ class AddMoneyModal extends StatefulWidget {
 
 class _AddMoneyModalState extends State<AddMoneyModal> {
   int selectedAmount = 10;
-  String selectedPayment = 'sepa';
+  PaymentMethod selectedPayment = PaymentMethod.sepa;
 
   @override
   Widget build(BuildContext context) {
@@ -103,8 +113,10 @@ class _AddMoneyModalState extends State<AddMoneyModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Betrag wählen',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text(
+          'Betrag wählen',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 12),
         GridView.builder(
           shrinkWrap: true,
@@ -136,12 +148,18 @@ class _AddMoneyModalState extends State<AddMoneyModal> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('$amount €',
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$amount €',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Text('= $amount THWS',
-                        style: TextStyle(color: Colors.grey.shade600)),
+                    Text(
+                      '= $amount THWS',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
                   ],
                 ),
               ),
@@ -158,23 +176,28 @@ class _AddMoneyModalState extends State<AddMoneyModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Zahlungsmethode',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text(
+          'Zahlungsmethode',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 12),
+
         _paymentTile(
-          value: 'sepa',
+          value: PaymentMethod.sepa,
           icon: Icons.account_balance,
           title: 'SEPA Lastschrift',
           subtitle: 'Sofortige Gutschrift',
         ),
+
         _paymentTile(
-          value: 'card',
+          value: PaymentMethod.card,
           icon: Icons.credit_card,
           title: 'Kredit-/Debitkarte',
           subtitle: 'Visa, Mastercard',
         ),
+
         _paymentTile(
-          value: 'paypal',
+          value: PaymentMethod.paypal,
           icon: Icons.paypal,
           title: 'PayPal',
           subtitle: 'Schnell & sicher',
@@ -184,7 +207,7 @@ class _AddMoneyModalState extends State<AddMoneyModal> {
   }
 
   Widget _paymentTile({
-    required String value,
+    required PaymentMethod value,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -208,19 +231,25 @@ class _AddMoneyModalState extends State<AddMoneyModal> {
         ),
         child: Row(
           children: [
-            Icon(icon,
-                color: selected
-                    ? const Color(0xFF2F5BEA)
-                    : Colors.grey.shade600),
+            Icon(
+              icon,
+              color: selected
+                  ? const Color(0xFF2F5BEA)
+                  : Colors.grey.shade600,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text(subtitle,
-                      style: TextStyle(color: Colors.grey.shade600)),
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
                 ],
               ),
             ),
@@ -265,7 +294,7 @@ class _AddMoneyModalState extends State<AddMoneyModal> {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                // Şimdilik sadece kapatıyoruz
+                // ⏭️ Buradan sonra ödeme akışına geçeceğiz
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
