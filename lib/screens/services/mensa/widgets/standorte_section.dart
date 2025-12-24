@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StandorteSection extends StatelessWidget {
   const StandorteSection({super.key});
@@ -23,16 +24,29 @@ class StandorteSection extends StatelessWidget {
             cityTitle: 'Würzburg',
             items: const [
               _LocationItem(
-                name: 'Mensa WÜ (Dummy)',
-                distanceText: '—',
-                address: 'Adresse folgt',
-                hours: 'Öffnungszeiten folgt',
+                name: 'Mensa Josef-Schneider-Straße Würzburg',
+                distanceText: ' ',
+                address: 'Josef-Schneider-Straße 9, 97080 Würzburg',
               ),
               _LocationItem(
-                name: 'Cafeteria WÜ (Dummy)',
-                distanceText: '—',
-                address: 'Adresse folgt',
-                hours: 'Öffnungszeiten folgt',
+                name: 'Mensa Röntgenring Würzburg',
+                distanceText: ' ',
+                address: 'Röntgenring 12, 97070 Würzburg',
+              ),
+              _LocationItem(
+                name: 'Mensa am Studentenhaus Würzburg',
+                distanceText: ' ',
+                address: 'Am Studentenhaus, 97072 Würzburg',
+              ),
+              _LocationItem(
+                name: 'Mensateria Campus Hubland Nord Würzburg',
+                distanceText: ' ',
+                address: 'Magdalene-Schoch-Straße, 97074 Würzburg',
+              ),
+              _LocationItem(
+                name: 'Mensa Campus Hubland Süd Würzburg',
+                distanceText: ' ',
+                address: 'Am Hubland, 97074 Würzburg',
               ),
             ],
           ),
@@ -43,16 +57,9 @@ class StandorteSection extends StatelessWidget {
             cityTitle: 'Schweinfurt',
             items: const [
               _LocationItem(
-                name: 'Mensa SHL (Dummy)',
-                distanceText: '—',
-                address: 'Adresse folgt',
-                hours: 'Öffnungszeiten folgt',
-              ),
-              _LocationItem(
-                name: 'Cafeteria SHL (Dummy)',
-                distanceText: '—',
-                address: 'Adresse folgt',
-                hours: 'Öffnungszeiten folgt',
+                name: 'Mensa THWS Campus Schweinfurt',
+                distanceText: ' ',
+                address: 'Fritz-Drescher-Straße 1, 97421 Schweinfurt',
               ),
             ],
           ),
@@ -92,7 +99,7 @@ class _CityCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          ...items.map((e) => e),
+          ...items,
         ],
       ),
     );
@@ -103,13 +110,11 @@ class _LocationItem extends StatelessWidget {
   final String name;
   final String distanceText;
   final String address;
-  final String hours;
 
   const _LocationItem({
     required this.name,
     required this.distanceText,
     required this.address,
-    required this.hours,
   });
 
   @override
@@ -137,11 +142,8 @@ class _LocationItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-
-              // Google Maps butonu için placeholder
-              // Sonra sen buraya launchUrl ile link bağlarsın.
               IconButton(
-                onPressed: () {},
+                onPressed: () => openGoogleMaps(address),
                 icon: const Icon(Icons.map_outlined),
                 color: const Color(0xFF2F54EB),
                 tooltip: 'Google Maps öffnen',
@@ -151,25 +153,19 @@ class _LocationItem extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 18, color: Colors.black54),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 18,
+                color: Colors.black54,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   address,
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.access_time, size: 18, color: Colors.black54),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  hours,
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
                 ),
               ),
             ],
@@ -179,5 +175,21 @@ class _LocationItem extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Google Maps helper (TEK YER)
+Future<void> openGoogleMaps(String address) async {
+  final uri = Uri.parse(
+    'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}',
+  );
+
+  final launched = await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+  );
+
+  if (!launched) {
+    debugPrint('Google Maps açılamadı: $uri');
   }
 }
