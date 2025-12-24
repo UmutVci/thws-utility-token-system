@@ -4,7 +4,6 @@ import com.umutavci.thwscoinbackend.infrastructure.jpa.event.DeadLetterEventEnti
 import com.umutavci.thwscoinbackend.infrastructure.jpa.event.DeadLetterEventJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
