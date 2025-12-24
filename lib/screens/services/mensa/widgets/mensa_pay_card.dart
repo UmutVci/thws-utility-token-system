@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../wallet/payment/payment_launcher.dart';
 
 class MensaPayCard extends StatelessWidget {
   const MensaPayCard({super.key});
@@ -7,7 +8,9 @@ class MensaPayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
+      child: GestureDetector(
+        onTap: () => openPayment(context),
+        child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFF2F54EB),
@@ -77,6 +80,7 @@ class MensaPayCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
