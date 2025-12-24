@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/transaction_item.dart';
 import '../../widgets/transaction_tile.dart';
+import 'wallet_all_transactions_screen.dart';
 
 class WalletTransactionsSection extends StatelessWidget {
   final List<TransactionItem> transactions;
@@ -22,7 +23,19 @@ class WalletTransactionsSection extends StatelessWidget {
               "Letzte Transaktionen",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            TextButton(onPressed: () {}, child: const Text("Alle")),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => WalletAllTransactionsScreen(
+                      transactions: transactions,
+                    ),
+                  ),
+                );
+              },
+              child: const Text("Alle"),
+            ),
           ],
         ),
         const SizedBox(height: 12),

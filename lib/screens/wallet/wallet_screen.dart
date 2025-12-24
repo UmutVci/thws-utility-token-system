@@ -29,6 +29,30 @@ class WalletScreen extends StatelessWidget {
         amount: 20.00,
         isExpense: false,
       ),
+      TransactionItem(
+        title: "Kaffeeautomat",
+        subtitle: "Gestern, 08:45",
+        amount: -1.80,
+        isExpense: true,
+      ),
+      TransactionItem(
+        title: "Mensa SHL",
+        subtitle: "12.03., 12:20",
+        amount: -5.20,
+        isExpense: true,
+      ),
+      TransactionItem(
+        title: "THWS Rueckerstattung",
+        subtitle: "11.03., 17:05",
+        amount: 10.00,
+        isExpense: false,
+      ),
+      TransactionItem(
+        title: "Bibliothek Gebuehr",
+        subtitle: "10.03., 15:10",
+        amount: -1.50,
+        isExpense: true,
+      ),
     ];
   }
 
