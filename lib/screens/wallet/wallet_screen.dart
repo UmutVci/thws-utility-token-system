@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'wallet_header.dart';
@@ -17,6 +16,7 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
+  late final AppLifecycleListener _lifecycleListener;
   // TODO: Replace with your WalletConnect Cloud projectId.
   final WalletConnectService _wcService =
       WalletConnectService(projectId: '8bcdb71c4952a4b75a62c7f38ba5eb55');
@@ -26,10 +26,18 @@ class _WalletScreenState extends State<WalletScreen> {
     super.initState();
     _wcService.addListener(_onServiceChanged);
     _wcService.init();
+    _lifecycleListener = AppLifecycleListener(
+      onStateChange: (state) {
+        if (state == AppLifecycleState.resumed) {
+          _wcService.resyncActiveSession();
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     _wcService.removeListener(_onServiceChanged);
     _wcService.dispose();
     super.dispose();
@@ -41,11 +49,31 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Future<void> _connectWallet() async {
     try {
-      await _wcService.connect();
+      final uri = await _wcService.connect();
+      final target = _wcService.metamaskDeepLink ?? uri;
+
+      if (target == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pairing URI alınamadı (projectId?).')),
+        );
+        return;
+      }
+
+      final launched = await launchUrl(
+        target,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('MetaMask açılamadı. Yüklü mü?')),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bağlantı başarısız: $e')),
+        SnackBar(content: Text('Verbindung fehlgeschlagen: $e')),
       );
     }
   }
@@ -122,9 +150,15 @@ class _WalletScreenState extends State<WalletScreen> {
               pairingUri: _wcService.pairingUri,
               onConnect: _connectWallet,
               onDisconnect: _disconnectWallet,
+              onResync: _wcService.resyncActiveSession,
+              debugStatus: 'connecting=${_wcService.isConnecting} connected=${_wcService.isConnected} addr=${_wcService.connectedAddress ?? "-"}',
             ),
             const SizedBox(height: 16),
-            const WalletBalanceCard(),
+            WalletBalanceCard(
+              isConnected: _wcService.isConnected,
+              balanceText: _wcService.formattedBalance,
+              onRefresh: _wcService.refreshBalance,
+            ),
             const SizedBox(height: 20),
             const WalletStatsRow(),
             const SizedBox(height: 24),
@@ -147,6 +181,8 @@ class _WalletConnectCard extends StatelessWidget {
     required this.pairingUri,
     required this.onConnect,
     required this.onDisconnect,
+    required this.onResync,
+    required this.debugStatus,
   });
 
   final bool isConnecting;
@@ -155,9 +191,14 @@ class _WalletConnectCard extends StatelessWidget {
   final Uri? pairingUri;
   final VoidCallback onConnect;
   final VoidCallback onDisconnect;
+  final VoidCallback onResync;
+  final String debugStatus;
 
   @override
   Widget build(BuildContext context) {
+    final metaMaskDeepLink =
+        pairingUri == null ? null : Uri.parse('metamask://wc?uri=${Uri.encodeComponent(pairingUri.toString())}');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -179,7 +220,7 @@ class _WalletConnectCard extends StatelessWidget {
               const Icon(Icons.link, color: Color(0xFF2F5BEA)),
               const SizedBox(width: 8),
               Text(
-                isConnected ? 'Cüzdan bağlı' : 'Cüzdana bağlan',
+                isConnected ? 'MetaMask verbunden' : 'Nur MetaMask Verbindung',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -208,7 +249,7 @@ class _WalletConnectCard extends StatelessWidget {
             ),
           ] else ...[
             const Text(
-              'WalletConnect ile bağlanmak için butona tıkla. QR kodu cüzdandan tara veya destekleyen cüzdanı aç.',
+              'Bu DApp sadece MetaMask ile bağlanır. Aşağıdaki butona tıkladığında MetaMask açılır ve onay istenir.',
               style: TextStyle(color: Colors.black54),
             ),
             const SizedBox(height: 12),
@@ -224,7 +265,7 @@ class _WalletConnectCard extends StatelessWidget {
                 ),
                 onPressed: isConnecting ? null : onConnect,
                 child: const Text(
-                  'Cüzdana Bağlan',
+                  'MetaMask ile bağlan',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -232,24 +273,27 @@ class _WalletConnectCard extends StatelessWidget {
                 ),
               ),
             ),
-            if (pairingUri != null) ...[
+            if (metaMaskDeepLink != null) ...[
               const SizedBox(height: 12),
-              Center(
-                child: QrImageView(
-                  data: pairingUri.toString(),
-                  size: 140,
-                ),
-              ),
-              const SizedBox(height: 8),
               TextButton.icon(
                 onPressed: () => launchUrl(
-                  pairingUri!,
+                  metaMaskDeepLink,
                   mode: LaunchMode.externalApplication,
                 ),
                 icon: const Icon(Icons.open_in_new),
-                label: const Text('Cüzdanı aç'),
+                label: const Text('MetaMask öffnen'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: onResync,
+                child: const Text('Onay verdim, durumu yenile'),
               ),
             ],
+            const SizedBox(height: 8),
+            Text(
+              debugStatus,
+              style: const TextStyle(color: Colors.black38, fontSize: 12),
+            ),
           ],
         ],
       ),

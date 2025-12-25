@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
     
-  walletconnect_flutter_v2: ^2.0.0 
+  walletconnect_flutter_v2: ^2.4.1
   permission_handler: ^11.3.1
   # QR Code
   qr_flutter: ^4.1.0

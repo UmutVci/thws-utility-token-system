@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'add_money/modals/add_money_modal.dart';
 import 'payment/payment_qr_screen.dart';
 
-
-
-
 class WalletBalanceCard extends StatefulWidget {
-  const WalletBalanceCard({super.key});
-@override
+  const WalletBalanceCard({
+    super.key,
+    required this.isConnected,
+    this.balanceText,
+    this.onRefresh,
+  });
+
+  final bool isConnected;
+  final String? balanceText;
+  final Future<void> Function()? onRefresh;
+
+  @override
   State<WalletBalanceCard> createState() => _WalletBalanceCardState();
 }
 
@@ -16,6 +23,15 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final String displayBalance;
+    if (!widget.isConnected) {
+      displayBalance = 'MetaMask verbinden';
+    } else if (widget.balanceText != null) {
+      displayBalance = '${widget.balanceText} ETH';
+    } else {
+      displayBalance = 'Lade...';
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -40,18 +56,27 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
                 'THWS Coin Guthaben',
                 style: TextStyle(color: Colors.white70),
               ),
-             GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isBalanceVisible = !_isBalanceVisible;
-                  });
-                },
-                child: Icon(
-                  _isBalanceVisible
-                      ? Icons.visibility
-                      : Icons.visibility_off,
-                  color: Colors.white,
-                ),
+              Row(
+                children: [
+                  if (widget.onRefresh != null && widget.isConnected)
+                    IconButton(
+                      onPressed: widget.onRefresh,
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                    ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isBalanceVisible = !_isBalanceVisible;
+                      });
+                    },
+                    child: Icon(
+                      _isBalanceVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -60,7 +85,7 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
 
           // Balance
          Text(
-            _isBalanceVisible ? '125,00 THWS' : '••••• THWS',
+            _isBalanceVisible ? displayBalance : '•••••',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -68,17 +93,17 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
             ),
           ),
 
-  if (_isBalanceVisible) ...[
-      const SizedBox(height: 4),
-      const Text(
-        '≈ 47,85 €',
-        style: TextStyle(
-          color: Colors.white70,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    ],
+          if (_isBalanceVisible && widget.isConnected && widget.balanceText != null) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'On-chain Kontostand',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 
