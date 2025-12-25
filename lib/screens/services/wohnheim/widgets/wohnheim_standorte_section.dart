@@ -202,27 +202,13 @@ class _CityCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  cityTitle,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              const Text(
-                'Waschmaschinen anzeigen',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2563EB),
-                ),
-              ),
-            ],
+          Text(
+            cityTitle,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(height: 12),
           const Divider(height: 1, color: Color(0xFFE8EDF5)),
@@ -285,7 +271,7 @@ class _WohnheimItem extends StatelessWidget {
               ),
               IconButton(
                 onPressed: () => _openMachines(context),
-                icon: const Icon(Icons.local_laundry_service, color: Color(0xFF2563EB)),
+                icon: const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF2563EB), size: 18),
                 tooltip: 'Waschmaschinen anzeigen',
               ),
             ],

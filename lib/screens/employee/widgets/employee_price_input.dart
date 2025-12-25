@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class EmployeePriceInput extends StatelessWidget {
-  const EmployeePriceInput({super.key});
+  final TextEditingController controller;
+
+  const EmployeePriceInput({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +16,8 @@ class EmployeePriceInput extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
-          keyboardType: TextInputType.number,
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             prefixText: '€ ',
             hintText: '0.00',
