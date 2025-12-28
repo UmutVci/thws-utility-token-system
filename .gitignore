@@ -1,18 +1,50 @@
-node_modules
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Environment
 .env
 
-# Hardhat files
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+**/GeneratedPluginRegistrant.*
+**/Generated.xcconfig
+**/flutter_export_environment.sh
+ios/Flutter/.last_build_id
+ios/Flutter/ephemeral/
+macos/Flutter/ephemeral/
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+
+# iOS / macOS
+ios/Pods/
+ios/.symlinks/
+ios/DerivedData/
+macos/Pods/
+macos/.symlinks/
+macos/DerivedData/
+
+# Hardhat
+node_modules/
 /cache
 /artifacts
-
-# TypeChain files
 /typechain
 /typechain-types
-
-# solidity-coverage files
 /coverage
 /coverage.json
-
-# Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
-target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+
+# Other build outputs
+target/
