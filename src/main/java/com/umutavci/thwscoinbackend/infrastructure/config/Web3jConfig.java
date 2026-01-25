@@ -1,5 +1,6 @@
 package com.umutavci.thwscoinbackend.infrastructure.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,9 +11,12 @@ import org.web3j.protocol.http.HttpService;
 @ConditionalOnProperty(name = "blockchain.enabled", havingValue = "true", matchIfMissing = true)
 public class Web3jConfig {
 
+    @Value("${blockchain.rpc.url}")
+    private String rpcUrl;
+
     @Bean
     public Web3j web3j() {
-        return Web3j.build(new HttpService("http://localhost:8545"));
+        return Web3j.build(new HttpService(rpcUrl));
     }
 }
 

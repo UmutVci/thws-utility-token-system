@@ -21,7 +21,8 @@ public class MensaOrderRepositoryAdapter implements MensaOrderRepository {
 
     @Override
     public Optional<MensaOrder> findById(Long id) {
-        return Optional.of(MensaOrderMapper.toDomain(MensaOrderEntity.fromDomain(findById(id).orElseThrow())));
+        return jpaRepo.findById(id)
+                .map(MensaOrderMapper::toDomain);
     }
 
     @Override

@@ -13,6 +13,7 @@ public class MensaOrderMapper {
         e.setAmount(domain.getAmount());
         e.setPaid(domain.isPaid());
         e.setTxHash(domain.getTxHash());
+        e.setStudentUserId(domain.getStudentUserId());
         return e;
     }
 
@@ -22,7 +23,8 @@ public class MensaOrderMapper {
                 entity.getCreatedAt(),
                 entity.getAmount(),
                 entity.isPaid(),
-                entity.getTxHash()
+                entity.getTxHash(),
+                entity.getStudentUserId()
         );
     }
 }

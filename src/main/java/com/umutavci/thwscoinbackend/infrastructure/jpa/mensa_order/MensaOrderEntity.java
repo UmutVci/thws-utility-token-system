@@ -20,6 +20,9 @@ public class MensaOrderEntity {
 
     private Integer amount;
 
+    @Column(name = "student_user_id", nullable = false)
+    private Long studentUserId;
+
     private boolean paid;
 
     private String txHash;
@@ -40,7 +43,8 @@ public class MensaOrderEntity {
                 createdAt,
                 amount,
                 paid,
-                txHash
+                txHash,
+                studentUserId
         );
     }
 }

@@ -27,14 +27,14 @@ public class MensaPaymentListener {
         ).subscribe(event -> {
 
             String eventId = event.log.getTransactionHash() + "-" + event.log.getLogIndex();
-            Long orderId = event.orderId.longValue();           // wrapper'dan geliyor
+            Long orderId = event.orderId.longValue();
             String txHash = event.log.getTransactionHash();
 
             retryService.executeWithRetry(
                     eventId,
                     orderId,
                     txHash,
-                    () -> processor.processServicePayment(event)   // burada asıl iş
+                    () -> processor.processServicePayment(event)
             );
         });
     }

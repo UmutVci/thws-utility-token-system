@@ -1,6 +1,5 @@
-package com.umutavci.thwscoinbackend.web.mensa;
+package com.umutavci.thwscoinbackend.web.mensa.controller;
 
-import com.umutavci.thwscoinbackend.application.event.EventProcessor;
 import com.umutavci.thwscoinbackend.application.mensa.MensaOrderUseCases;
 import com.umutavci.thwscoinbackend.infrastructure.jpa.event.DeadLetterEventEntity;
 import com.umutavci.thwscoinbackend.infrastructure.jpa.event.DeadLetterEventJpaRepository;

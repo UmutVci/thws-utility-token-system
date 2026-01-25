@@ -1,4 +1,4 @@
-package com.umutavci.thwscoinbackend.web.mensa;
+package com.umutavci.thwscoinbackend.web.mensa.dto;
 
 import com.umutavci.thwscoinbackend.domain.mensa.MensaOrder;
 
