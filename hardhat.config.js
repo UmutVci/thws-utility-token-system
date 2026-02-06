@@ -11,5 +11,9 @@ module.exports = {
       url: RPC_URL || "",
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
+     anvil: {
+      url: "http://127.0.0.1:8545",
+      accounts: [ANVIL_PRIVATE_KEY],
+  },
   },
 };

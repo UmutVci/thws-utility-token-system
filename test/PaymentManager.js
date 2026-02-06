@@ -21,7 +21,7 @@ describe("PaymentManager", function () {
 
     await manager.setLaundryWallet(laundry.address);
     await manager.setLaundryLockDuration(3600);
-    await manager.setLaundryPrice(dorm, 1, 175); // override for machine 1
+    await manager.setLaundryPrice(dorm, 1, 175);
 
     await manager.setVendingWallet(vending.address);
     await manager.setVendingPrice(vendingCampus, vendingHall, 2, 230);

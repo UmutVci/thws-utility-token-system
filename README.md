@@ -53,5 +53,18 @@ npx hardhat compile
 ```
 Empfohlene Node-Version: 18/20 (Hardhat warnt bei 25).
 
+## Foundry & Anvil (optional)
+```bash
+forge install foundry-rs/forge-std
+forge test
+```
+
+Anvil + Foundry Deploy:
+```bash
+anvil
+export ANVIL_PRIVATE_KEY=<anvil_private_key>
+forge script script/Deploy.s.sol:Deploy --rpc-url http://127.0.0.1:8545 --broadcast --private-key $ANVIL_PRIVATE_KEY
+```
+
 ## TL;DR
 Rollenbasiertes Payment-Gateway: Service-/Bereichs-Wallets, Default/Override-Preise, EIP-712 signierte Mensa-Zahlungen, Events für Auswertungen. Konfigurierbar über CONFIG_ROLE, Pause über DEFAULT_ADMIN_ROLE.

@@ -46,5 +46,11 @@ node_modules/
 /coverage.json
 ignition/deployments/chain-31337
 
+# Foundry
+/broadcast
+/cache
+/out
+remappings.txt
+
 # Other build outputs
 target/
