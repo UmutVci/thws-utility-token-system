@@ -249,8 +249,7 @@ class _WalletConnectCard extends StatelessWidget {
             ),
           ] else ...[
             const Text(
-              'Bu DApp sadece MetaMask ile bağlanır. Aşağıdaki butona tıkladığında MetaMask açılır ve onay istenir.',
-              style: TextStyle(color: Colors.black54),
+              'Diese DApp verbindet sich ausschließlich mit MetaMask. Sobald du auf die Schaltfläche unten klickst, wird MetaMask geöffnet und du wirst um Bestätigung gebeten.',              style: TextStyle(color: Colors.black54),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -265,7 +264,7 @@ class _WalletConnectCard extends StatelessWidget {
                 ),
                 onPressed: isConnecting ? null : onConnect,
                 child: const Text(
-                  'MetaMask ile bağlan',
+                  'Mit MetaMask verbinden',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -286,7 +285,7 @@ class _WalletConnectCard extends StatelessWidget {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: onResync,
-                child: const Text('Onay verdim, durumu yenile'),
+                child: const Text('Bestätigt, Status aktualisieren'),
               ),
             ],
             const SizedBox(height: 8),

@@ -25,7 +25,7 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
   Widget build(BuildContext context) {
     final String displayBalance;
     if (!widget.isConnected) {
-      displayBalance = 'MetaMask verbinden';
+      displayBalance = '25.00 THWS';
     } else if (widget.balanceText != null) {
       displayBalance = '${widget.balanceText} ETH';
     } else {

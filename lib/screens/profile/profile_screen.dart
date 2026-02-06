@@ -29,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
     'validUntil': '30.09.2025',
     'email': 'max.mustermann@study.thws.de',
     'phone': '+49 151 12345678',
-    'campus': 'Schweinfurt',
+    'campus': 'Würzburg - SHL',
   };
 
   late final String cardId;

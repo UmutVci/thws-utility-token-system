@@ -1,4 +1,4 @@
-package com.example.thws_token_frontend
+package com.thws.thwstoken
 
 import io.flutter.embedding.android.FlutterActivity
 

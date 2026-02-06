@@ -1,28 +1,36 @@
-name: thws_token_frontend
+name: thwstoken
 description: "THWS Utility Token App – Frontend"
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.4
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-    
-  walletconnect_flutter_v2: ^2.4.1
-  permission_handler: ^11.3.1
-  # QR Code
+
+  # WalletConnect (stable)
+  walletconnect_flutter_v2: ^2.0.14
+
+  # Web3 / Blockchain interaction
+  web3dart: ^2.7.3
+  http: ^1.1.0
+
+  # QR Code (for WalletConnect pairing, if needed)
   qr_flutter: ^4.1.0
 
-  # Externe Links (Telefon, Mail, Web)
-  url_launcher: ^6.3.0
+  # Permissions (camera for QR scan, etc.)
+  permission_handler: ^11.3.1
 
-  # iOS Style Icons
+  # External links (open MetaMask, browser, etc.)
+  url_launcher: ^6.2.0
+
+  # iOS style icons
   cupertino_icons: ^1.0.8
 
-dev_dependencies:  
+dev_dependencies:
   flutter_test:
     sdk: flutter
 
@@ -31,5 +39,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+
   assets:
+    # icons
     - assets/icons/
+
+    # contract ABIs
+    - assets/abi/

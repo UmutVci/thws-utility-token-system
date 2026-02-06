@@ -6,3 +6,9 @@ WalletConnect quick setup
 - Android: add the same schemes to `<queries>` in `android/app/src/main/AndroidManifest.xml` (intent filter if you use a custom scheme).
 - Test flow: launch app → “Cüzdana Bağlan” → approve pairing in wallet (QR or deep link) → address appears → “Disconnect” to drop session.
 
+MetaMask Installation (DE)
+--------------------------
+- Lade MetaMask aus dem offiziellen App Store (iOS) oder Google Play Store (Android) herunter.
+- Erstelle eine neue Wallet oder importiere eine bestehende mit deiner Seed-Phrase.
+- Schalte biometrische Sperre bzw. PIN in MetaMask ein.
+- Öffne anschließend die App, damit die Deep-Links funktionieren.
