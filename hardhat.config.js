@@ -1,7 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
-const { RPC_URL, PRIVATE_KEY } = process.env;
+const { RPC_URL, PRIVATE_KEY, ANVIL_PRIVATE_KEY } = process.env;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -11,9 +11,14 @@ module.exports = {
       url: RPC_URL || "",
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
-     anvil: {
+    sepolia: {
+      url: RPC_URL || "",
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+      chainId: 11155111,
+    },
+    anvil: {
       url: "http://127.0.0.1:8545",
-      accounts: [ANVIL_PRIVATE_KEY],
-  },
+      accounts: ANVIL_PRIVATE_KEY ? [ANVIL_PRIVATE_KEY] : [],
+    },
   },
 };
