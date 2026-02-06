@@ -1,0 +1,13 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "rpcUrl": "https://eth-sepolia.g.alchemy.com/v2/sG7jCywWv-EBDBzYhN1eH",
+  "paymentManager": {
+    "address": "0x2Fe543C1FEf85224c040506aFCE4E17e705DF3d9",
+    "abiPath": "artifacts/contracts/PaymentManager.sol/PaymentManager.json"
+  },
+  "token": {
+    "address": "0xF8B980bD0C33Df169f0d529d27c70E413C7BF5BC",
+    "abiPath": "artifacts/contracts/THWSToken.sol/THWSToken.json"
+  }
+}

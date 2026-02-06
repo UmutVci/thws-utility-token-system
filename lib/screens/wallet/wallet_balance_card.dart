@@ -25,9 +25,9 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
   Widget build(BuildContext context) {
     final String displayBalance;
     if (!widget.isConnected) {
-      displayBalance = '25.00 THWS';
+      displayBalance = '—';
     } else if (widget.balanceText != null) {
-      displayBalance = '${widget.balanceText} ETH';
+      displayBalance = '${widget.balanceText} THWS';
     } else {
       displayBalance = 'Lade...';
     }
@@ -96,7 +96,7 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
           if (_isBalanceVisible && widget.isConnected && widget.balanceText != null) ...[
             const SizedBox(height: 4),
             const Text(
-              'On-chain Kontostand',
+              'On-chain THWS',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 14,

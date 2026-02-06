@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:web3dart/web3dart.dart';
+import 'package:thwstoken/config/contracts.dart';
 import 'widgets/employee_header.dart';
 import 'widgets/employee_qr_card.dart';
 
@@ -14,10 +15,10 @@ class EmployeeHomeScreen extends StatefulWidget {
 class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   // RPC URL - MacBook/iOS Simülatör için 127.0.0.1 doğrudur.
   // Eğer Android Simülatöre geçersen burayı 10.0.2.2 yapmalısın.
-  final String rpcUrl = "http://127.0.0.1:8545";
+  final String rpcUrl = ContractsConfig.rpcUrl;
 
   // Terminal çıktındaki güncel PaymentManager adresi:
-  final String targetAddress = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+  final String targetAddress = ContractsConfig.paymentManager;
 
   // Anvil (0) numaralı Private Key (Gönderen hesap):
   final String privateKey =
@@ -59,7 +60,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           to: EthereumAddress.fromHex(targetAddress),
           value: EtherAmount.fromInt(EtherUnit.gwei, 10000000), // 0.01 ETH
         ),
-        chainId: 31337, // Anvil Local Chain ID
+        chainId: ContractsConfig.chainId, // Network Chain ID
       );
 
       // İşlemden sonra kısa bir bekleme ve bakiye tazeleme

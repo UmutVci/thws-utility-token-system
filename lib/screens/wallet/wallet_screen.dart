@@ -1,4 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart';
+import 'package:web3dart/web3dart.dart';
+
+import '../../config/contracts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'wallet_header.dart';
@@ -6,7 +13,7 @@ import 'wallet_balance_card.dart';
 import 'wallet_stats_row.dart';
 import 'wallet_transactions_section.dart';
 import '../../models/transaction_item.dart';
-import '../../services/wallet_connect_service.dart';
+import '../../services/wallet_connect_singleton.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -17,9 +24,10 @@ class WalletScreen extends StatefulWidget {
 
 class _WalletScreenState extends State<WalletScreen> {
   late final AppLifecycleListener _lifecycleListener;
+  String? _tokenBalance;
+  bool _isLoadingBalance = false;
   // TODO: Replace with your WalletConnect Cloud projectId.
-  final WalletConnectService _wcService =
-      WalletConnectService(projectId: '8bcdb71c4952a4b75a62c7f38ba5eb55');
+  final _wcService = walletConnectService;
 
   @override
   void initState() {
@@ -39,17 +47,64 @@ class _WalletScreenState extends State<WalletScreen> {
   void dispose() {
     _lifecycleListener.dispose();
     _wcService.removeListener(_onServiceChanged);
-    _wcService.dispose();
     super.dispose();
   }
 
   void _onServiceChanged() {
     if (mounted) setState(() {});
+    if (_wcService.isConnected) {
+      _refreshTokenBalance();
+    }
+  }
+
+  Future<ContractAbi> _loadAbi(String assetPath, String name) async {
+    final raw = await rootBundle.loadString(assetPath);
+    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    final abiJson = jsonEncode(decoded['abi']);
+    return ContractAbi.fromJson(abiJson, name);
+  }
+
+  Future<void> _refreshTokenBalance() async {
+    if (!_wcService.isConnected) return;
+    final address = _wcService.connectedAddress;
+    if (address == null) return;
+
+    setState(() => _isLoadingBalance = true);
+
+    try {
+      final client = Web3Client(ContractsConfig.rpcUrl, Client());
+      final tokenAbi = await _loadAbi('assets/abi/THWSToken.json', 'THWSToken');
+      final token = DeployedContract(
+        tokenAbi,
+        EthereumAddress.fromHex(ContractsConfig.token),
+      );
+      final balanceFn = token.function('balanceOf');
+      final result = await client.call(
+        contract: token,
+        function: balanceFn,
+        params: [EthereumAddress.fromHex(address)],
+      );
+
+      if (result.isNotEmpty && result.first is BigInt) {
+        final raw = result.first as BigInt;
+        final decimals = 2;
+        final divisor = BigInt.from(10).pow(decimals);
+        final whole = raw ~/ divisor;
+        final frac = (raw % divisor).toString().padLeft(decimals, '0');
+        _tokenBalance = '${whole.toString()}.${frac}';
+      }
+    } catch (e) {
+      // ignore; UI will show last known balance
+    } finally {
+      if (mounted) setState(() => _isLoadingBalance = false);
+    }
   }
 
   Future<void> _connectWallet() async {
     try {
       final uri = await _wcService.connect();
+      await _wcService.ensureSepoliaChain();
+      await _refreshTokenBalance();
       final target = _wcService.metamaskDeepLink ?? uri;
 
       if (target == null) {
@@ -83,50 +138,7 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   List<TransactionItem> _mockTransactions() {
-    return const [
-      TransactionItem(
-        title: "Mensa SHL",
-        subtitle: "Heute, 12:15",
-        amount: -4.50,
-        isExpense: true,
-      ),
-      TransactionItem(
-        title: "Bibliothek Gebühr",
-        subtitle: "Gestern, 16:30",
-        amount: -2.00,
-        isExpense: true,
-      ),
-      TransactionItem(
-        title: "Aufladung",
-        subtitle: "Gestern, 09:10",
-        amount: 20.00,
-        isExpense: false,
-      ),
-      TransactionItem(
-        title: "Kaffeeautomat",
-        subtitle: "Gestern, 08:45",
-        amount: -1.80,
-        isExpense: true,
-      ),
-      TransactionItem(
-        title: "Mensa SHL",
-        subtitle: "12.03., 12:20",
-        amount: -5.20,
-        isExpense: true,
-      ),
-      TransactionItem(
-        title: "THWS Rueckerstattung",
-        subtitle: "11.03., 17:05",
-        amount: 10.00,
-        isExpense: false,
-      ),
-      TransactionItem(
-        title: "Bibliothek Gebuehr",
-        subtitle: "10.03., 15:10",
-        amount: -1.50,
-        isExpense: true,
-      ),
-    ];
+    return const [];
   }
 
   @override
@@ -156,8 +168,11 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 16),
             WalletBalanceCard(
               isConnected: _wcService.isConnected,
-              balanceText: _wcService.formattedBalance,
-              onRefresh: _wcService.refreshBalance,
+              balanceText: _tokenBalance,
+              onRefresh: () async {
+                await _wcService.ensureSepoliaChain();
+      await _refreshTokenBalance();
+              },
             ),
             const SizedBox(height: 20),
             const WalletStatsRow(),

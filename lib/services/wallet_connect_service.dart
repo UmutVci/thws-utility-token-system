@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
+
+import '../config/contracts.dart';
 import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart';
 
 /// Lightweight WalletConnect v2 wrapper for connect/disconnect + address exposure.
 class WalletConnectService extends ChangeNotifier {
   WalletConnectService({
     required String projectId,
-    this.chains = const ['eip155:1'], // Ethereum mainnet
+    this.chains = const ['eip155:11155111'], // Sepolia
   }) : _projectId = projectId;
 
   final String _projectId;
@@ -28,7 +30,7 @@ class WalletConnectService extends ChangeNotifier {
         metadata: const PairingMetadata(
           name: 'THWS Token',
           description: 'THWS Utility Token App',
-          url: 'https://thws-token.local',
+          url: 'https://example.com',
           icons: ['https://raw.githubusercontent.com/flutter/website/master/src/_assets/image/flutter-lockup-bg.jpg'],
           redirect: Redirect(
             native: 'thwstoken://wc',
@@ -44,6 +46,7 @@ class WalletConnectService extends ChangeNotifier {
           _session = event.session;
           _pairingUri = null;
           _isConnecting = false;
+          ensureSepoliaChain();
           _refreshBalanceInternal();
           notifyListeners();
         }
@@ -89,7 +92,7 @@ class WalletConnectService extends ChangeNotifier {
         requiredNamespaces: {
           'eip155': RequiredNamespace(
             chains: chains,
-            methods: const ['eth_sign', 'personal_sign', 'eth_sendTransaction'],
+            methods: const ['eth_sign', 'personal_sign', 'eth_sendTransaction', 'eth_getBalance', 'wallet_switchEthereumChain', 'wallet_addEthereumChain'],
             events: const ['accountsChanged', 'chainChanged'],
           ),
         },
@@ -129,16 +132,102 @@ class WalletConnectService extends ChangeNotifier {
     }
   }
 
+  Future<String?> sendTransaction({
+    required String to,
+    required String data,
+    String value = '0x0',
+  }) async {
+    if (_web3App == null || _session == null) {
+      throw Exception('Wallet not connected');
+    }
+    final from = connectedAddress;
+    if (from == null) {
+      throw Exception('No connected address');
+    }
+
+    final result = await _web3App!.request(
+      topic: _session!.topic,
+      chainId: chains.first,
+      request: SessionRequestParams(
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            'from': from,
+            'to': to,
+            'data': data,
+            'value': value,
+          }
+        ],
+      ),
+    );
+
+    if (result is String) return result;
+    return null;
+  }
+
   Future<void> refreshBalance() => _refreshBalanceInternal();
+
+  Future<void> ensureSepoliaChain() async {
+    if (_web3App == null || _session == null) return;
+    try {
+      await _web3App!.request(
+        topic: _session!.topic,
+        chainId: chains.first,
+        request: const SessionRequestParams(
+          method: 'wallet_switchEthereumChain',
+          params: [
+            {'chainId': '0xaa36a7'}
+          ],
+        ),
+      );
+    } catch (_) {
+      await _web3App!.request(
+        topic: _session!.topic,
+        chainId: chains.first,
+        request: SessionRequestParams(
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              'chainId': '0xaa36a7',
+              'chainName': 'Sepolia',
+              'nativeCurrency': {
+                'name': 'Sepolia ETH',
+                'symbol': 'ETH',
+                'decimals': 18,
+              },
+              'rpcUrls': [ContractsConfig.rpcUrl],
+              'blockExplorerUrls': ['https://sepolia.etherscan.io'],
+            }
+          ],
+        ),
+      );
+    }
+  }
 
   Future<void> resyncActiveSession() async {
     if (_web3App == null) return;
     final cachedSessions = _web3App!.sessions.getAll();
     if (cachedSessions.isEmpty) return;
     debugPrint('[WC] resyncActiveSession using cached session');
-    _session = cachedSessions.first;
+    final next = cachedSessions.first;
+    // Ensure the cached session supports the required chain (Sepolia).
+    final accounts = next.namespaces['eip155']?.accounts ?? const [];
+    final hasSepolia = accounts.any((a) => a.startsWith('eip155:11155111:'));
+    if (!hasSepolia) {
+      await _web3App!.disconnectSession(
+        topic: next.topic,
+        reason: Errors.getSdkError(Errors.USER_DISCONNECTED),
+      );
+      _session = null;
+      _pairingUri = null;
+      _isConnecting = false;
+      notifyListeners();
+      return;
+    }
+    _session = next;
     _isConnecting = false;
     _pairingUri = null;
+    await ensureSepoliaChain();
     await _refreshBalanceInternal();
     notifyListeners();
   }
