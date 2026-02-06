@@ -12,14 +12,22 @@ public class EventStateRepositoryAdapter implements EventStateRepository {
 
     @Override
     public long getLastProcessedBlock() {
-        return repo.findById(1L).orElseThrow().getLastProcessedBlock();
+        return getOrCreate().getLastProcessedBlock();
     }
 
     @Override
     public void updateLastProcessedBlock(long block) {
-        EventStateEntity e = repo.findById(1L).orElseThrow();
+        EventStateEntity e = getOrCreate();
         e.setLastProcessedBlock(block);
         repo.save(e);
     }
-}
 
+    private EventStateEntity getOrCreate() {
+        return repo.findById(1).orElseGet(() -> {
+            EventStateEntity e = new EventStateEntity();
+            e.setId(1);
+            e.setLastProcessedBlock(0L);
+            return repo.save(e);
+        });
+    }
+}

@@ -4,5 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface EventStateJpaRepository extends JpaRepository<EventStateEntity, Long> {
+public interface EventStateJpaRepository extends JpaRepository<EventStateEntity, Integer> {
 }

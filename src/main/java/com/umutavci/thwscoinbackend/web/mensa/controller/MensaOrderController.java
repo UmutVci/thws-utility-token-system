@@ -2,8 +2,11 @@ package com.umutavci.thwscoinbackend.web.mensa.controller;
 
 import com.umutavci.thwscoinbackend.application.mensa.MensaOrderUseCases;
 import com.umutavci.thwscoinbackend.infrastructure.config.CurrentUserProvider;
+import com.umutavci.thwscoinbackend.application.mensa.MensaPaymentSignatureService;
 import com.umutavci.thwscoinbackend.web.mensa.dto.CreateMensaOrderRequest;
 import com.umutavci.thwscoinbackend.web.mensa.dto.MensaOrderDto;
+import com.umutavci.thwscoinbackend.web.mensa.dto.PaymentSignatureRequest;
+import com.umutavci.thwscoinbackend.web.mensa.dto.PaymentSignatureResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +20,7 @@ public class MensaOrderController {
 
     private final MensaOrderUseCases useCases;
     private final CurrentUserProvider currentUserProvider;
+    private final MensaPaymentSignatureService signatureService;
 
 
     @PostMapping("/order")
@@ -37,6 +41,15 @@ public class MensaOrderController {
     public ResponseEntity<MensaOrderDto> getOrder(@PathVariable Long id) {
         var order = useCases.getOrder(id, currentUserProvider.getCurrentUserId());
         return ResponseEntity.ok(MensaOrderDto.fromDomain(order));
+    }
+
+    @PostMapping("/payment-signature")
+    public ResponseEntity<PaymentSignatureResponse> createPaymentSignature(
+            @RequestBody PaymentSignatureRequest req
+    ) throws Exception {
+        // For now: sign what backend receives. You can tie this to real order checks later.
+        var sig = signatureService.signMensaPayment(req);
+        return ResponseEntity.ok(sig);
     }
 
     // TODO : @Profile("internal") / @PreAuthorize("ADMIN")
