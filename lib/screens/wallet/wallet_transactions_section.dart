@@ -22,7 +22,7 @@ class WalletTransactionsSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              "Letzte Transaktionen",
+              'Letzte Transaktionen',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             TextButton(
@@ -36,14 +36,21 @@ class WalletTransactionsSection extends StatelessWidget {
                   ),
                 );
               },
-              child: const Text("Alle"),
+              child: const Text('Alle'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        ...transactions.map(
-          (tx) => TransactionTile(tx: tx),
-        ),
+        if (transactions.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              'Noch keine Transaktionen vorhanden.',
+              style: TextStyle(color: Colors.black54),
+            ),
+          )
+        else
+          ...transactions.map((tx) => TransactionTile(tx: tx)),
       ],
     );
   }

@@ -1,11 +1,22 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
 
-import '../../wallet/payment/payment_qr_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:web3dart/crypto.dart';
+import 'package:web3dart/web3dart.dart';
+
+import '../../../config/contracts.dart';
 import '../../../layout/app_bottom_nav.dart';
 import '../../../layout/main_layout.dart';
+import '../../../models/transaction_item.dart';
+import '../../../services/transaction_history_service.dart';
+import '../../../services/wallet_connect_singleton.dart';
 import 'widgets/wohnheim_standorte_section.dart';
 
-class WohnheimMachinesPage extends StatelessWidget {
+class WohnheimMachinesPage extends StatefulWidget {
   final String title;
   final String address;
   final List<MachineGroup> groups;
@@ -16,6 +27,294 @@ class WohnheimMachinesPage extends StatelessWidget {
     required this.address,
     required this.groups,
   });
+
+  @override
+  State<WohnheimMachinesPage> createState() => _WohnheimMachinesPageState();
+}
+
+class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
+  static const int _priceMinor = 150; // 1.50 THWS with 2 decimals
+
+  final _wcService = walletConnectService;
+  final _historyService = transactionHistoryService;
+
+  final Map<String, int> _lockedUntilByLabel = {};
+  final Set<String> _pendingMachines = {};
+
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _wcService.init();
+    _wcService.resyncActiveSession();
+    _historyService.init();
+
+    _refreshLocks();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _refreshLocks();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Uint8List _bytes32(String value) {
+    final bytes = utf8.encode(value);
+    final out = Uint8List(32);
+    final len = bytes.length > 32 ? 32 : bytes.length;
+    out.setRange(0, len, bytes.take(len));
+    return out;
+  }
+
+  int _machineIdFromLabel(String label) {
+    final match = RegExp(r'(\d+)').firstMatch(label);
+    if (match == null) return 1;
+    return int.tryParse(match.group(1)!) ?? 1;
+  }
+
+  String _dormCodeForTitle(String title) {
+    final normalized = title
+        .toUpperCase()
+        .replaceAll('Ä', 'AE')
+        .replaceAll('Ö', 'OE')
+        .replaceAll('Ü', 'UE')
+        .replaceAll('ß', 'SS')
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (normalized.isEmpty) return 'DORM';
+    return normalized.length <= 12 ? normalized : normalized.substring(0, 12);
+  }
+
+  String _subtitleForTransaction(String? txHash, DateTime at) {
+    final dd = at.day.toString().padLeft(2, '0');
+    final mm = at.month.toString().padLeft(2, '0');
+    final hh = at.hour.toString().padLeft(2, '0');
+    final mi = at.minute.toString().padLeft(2, '0');
+    final hashPart = (txHash != null && txHash.length >= 10)
+        ? ' • ${txHash.substring(0, 10)}...'
+        : '';
+    return '$dd.$mm $hh:$mi$hashPart';
+  }
+
+  Future<ContractAbi> _loadAbi(String assetPath, String name) async {
+    final raw = await rootBundle.loadString(assetPath);
+    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    final abiJson = jsonEncode(decoded['abi']);
+    return ContractAbi.fromJson(abiJson, name);
+  }
+
+  Future<bool> _openMetaMask() async {
+    final primary = Uri.parse('metamask://');
+    final fallback = Uri.parse('https://metamask.app.link/');
+
+    final openedPrimary = await launchUrl(
+      primary,
+      mode: LaunchMode.externalApplication,
+    );
+    if (openedPrimary) return true;
+
+    return launchUrl(
+      fallback,
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  Future<void> _refreshLocks() async {
+    if (!_wcService.isConnected || _wcService.connectedAddress == null) {
+      return;
+    }
+
+    try {
+      final pmAbi = await _loadAbi('assets/abi/PaymentManager.json', 'PaymentManager');
+      final pmContract = DeployedContract(
+        pmAbi,
+        EthereumAddress.fromHex(ContractsConfig.paymentManager),
+      );
+      final lockFn = pmContract.function('getMachineLockedUntil');
+
+      final client = Web3Client(
+        ContractsConfig.rpcUrl,
+        http.Client(),
+      );
+
+      final dormCode = _dormCodeForTitle(widget.title);
+      final next = <String, int>{};
+      for (final group in widget.groups) {
+        for (final machine in group.machines) {
+          final machineId = _machineIdFromLabel(machine.label);
+          final result = await client.call(
+            contract: pmContract,
+            function: lockFn,
+            params: [
+              _bytes32(dormCode),
+              BigInt.from(machineId),
+            ],
+          );
+          if (result.isNotEmpty && result.first is BigInt) {
+            next[machine.label] = (result.first as BigInt).toInt();
+          }
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _lockedUntilByLabel
+          ..clear()
+          ..addAll(next);
+      });
+    } catch (_) {
+      // Keep last known lock state on RPC error.
+    }
+  }
+
+  Future<void> _payLaundry(MachineInfo machine) async {
+    if (!_wcService.isConnected || _wcService.connectedAddress == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte zuerst Wallet verbinden.')),
+      );
+      return;
+    }
+
+    final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final lockedUntil = _lockedUntilByLabel[machine.label] ?? 0;
+    if (lockedUntil > nowSec) {
+      if (!mounted) return;
+      final dt = DateTime.fromMillisecondsSinceEpoch(lockedUntil * 1000);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Maschine ist belegt bis ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}')), 
+      );
+      return;
+    }
+
+    final label = machine.label;
+    setState(() => _pendingMachines.add(label));
+
+    try {
+      await _wcService.ensureSepoliaChain();
+
+      final tokenAbi = await _loadAbi('assets/abi/THWSToken.json', 'THWSToken');
+      final pmAbi = await _loadAbi('assets/abi/PaymentManager.json', 'PaymentManager');
+
+      final tokenContract = DeployedContract(
+        tokenAbi,
+        EthereumAddress.fromHex(ContractsConfig.token),
+      );
+      final pmContract = DeployedContract(
+        pmAbi,
+        EthereumAddress.fromHex(ContractsConfig.paymentManager),
+      );
+
+      final dormCode = _dormCodeForTitle(widget.title);
+      final machineId = _machineIdFromLabel(machine.label);
+
+      final approveFn = tokenContract.function('approve');
+      final allowanceFn = tokenContract.function('allowance');
+      final approveData = bytesToHex(
+        approveFn.encodeCall([
+          EthereumAddress.fromHex(ContractsConfig.paymentManager),
+          BigInt.from(_priceMinor),
+        ]),
+        include0x: true,
+      );
+
+      final payLaundryFn = pmContract.function('payLaundry');
+      final payData = bytesToHex(
+        payLaundryFn.encodeCall([
+          _bytes32(dormCode),
+          BigInt.from(machineId),
+        ]),
+        include0x: true,
+      );
+
+      final allowanceResult = await Web3Client(
+        ContractsConfig.rpcUrl,
+        http.Client(),
+      ).call(
+        contract: tokenContract,
+        function: allowanceFn,
+        params: [
+          EthereumAddress.fromHex(_wcService.connectedAddress!),
+          EthereumAddress.fromHex(ContractsConfig.paymentManager),
+        ],
+      );
+      final allowance = allowanceResult.isNotEmpty && allowanceResult.first is BigInt
+          ? allowanceResult.first as BigInt
+          : BigInt.zero;
+
+      if (allowance < BigInt.from(_priceMinor)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Warte auf Freigabe in MetaMask...')),
+        );
+        final approveFuture = _wcService
+            .sendTransaction(
+              to: ContractsConfig.token,
+              data: approveData,
+            )
+            .timeout(const Duration(seconds: 90));
+        await _openMetaMask();
+        await approveFuture;
+      }
+
+      final payFuture = _wcService
+          .sendTransaction(
+            to: ContractsConfig.paymentManager,
+            data: payData,
+          )
+          .timeout(const Duration(seconds: 90));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Warte auf Zahlungsbestätigung in MetaMask...')),
+      );
+      await _openMetaMask();
+      final txHash = await payFuture;
+
+      final now = DateTime.now();
+      await _historyService.addTransaction(
+        TransactionItem(
+          title: 'Laundry Zahlung',
+          subtitle: _subtitleForTransaction(txHash, now),
+          amount: _priceMinor / 100,
+          isExpense: true,
+          createdAt: now,
+          txHash: txHash,
+        ),
+      );
+
+      await _refreshLocks();
+      await _wcService.refreshBalance();
+      await _wcService.resyncActiveSession();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Zahlung gesendet. Maschine ist jetzt gesperrt.')),
+      );
+    } on TimeoutException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Zeitüberschreitung. Bitte MetaMask öffnen und Anfrage prüfen.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Zahlung fehlgeschlagen: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _pendingMachines.remove(label));
+      }
+    }
+  }
+
+  bool _isMachineAvailable(MachineInfo machine) {
+    final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final lockedUntil = _lockedUntilByLabel[machine.label] ?? 0;
+    return machine.available && lockedUntil <= nowSec;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +361,7 @@ class WohnheimMachinesPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  widget.title,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -76,18 +375,28 @@ class WohnheimMachinesPage extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        address,
+                        widget.address,
                         style: const TextStyle(fontSize: 13, color: Colors.black87),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Preis: 1,50 THWS pro Waschgang',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 14),
-          ...groups.map(
-            (group) => _MachineGroupCard(group: group),
+          ...widget.groups.map(
+            (group) => _MachineGroupCard(
+              group: group,
+              isAvailable: _isMachineAvailable,
+              isPending: (m) => _pendingMachines.contains(m.label),
+              onPayTap: _payLaundry,
+            ),
           ),
         ],
       ),
@@ -97,8 +406,16 @@ class WohnheimMachinesPage extends StatelessWidget {
 
 class _MachineGroupCard extends StatelessWidget {
   final MachineGroup group;
+  final bool Function(MachineInfo machine) isAvailable;
+  final bool Function(MachineInfo machine) isPending;
+  final Future<void> Function(MachineInfo machine) onPayTap;
 
-  const _MachineGroupCard({required this.group});
+  const _MachineGroupCard({
+    required this.group,
+    required this.isAvailable,
+    required this.isPending,
+    required this.onPayTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +451,16 @@ class _MachineGroupCard extends StatelessWidget {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: washers.map((m) => _MachineTile(machine: m)).toList(),
+                children: washers
+                    .map(
+                      (m) => _MachineTile(
+                        machine: m,
+                        available: isAvailable(m),
+                        pending: isPending(m),
+                        onTap: () => onPayTap(m),
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 12),
             ],
@@ -147,7 +473,16 @@ class _MachineGroupCard extends StatelessWidget {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: dryers.map((m) => _MachineTile(machine: m)).toList(),
+                children: dryers
+                    .map(
+                      (m) => _MachineTile(
+                        machine: m,
+                        available: isAvailable(m),
+                        pending: isPending(m),
+                        onTap: () => onPayTap(m),
+                      ),
+                    )
+                    .toList(),
               ),
             ],
           ],
@@ -159,23 +494,24 @@ class _MachineGroupCard extends StatelessWidget {
 
 class _MachineTile extends StatelessWidget {
   final MachineInfo machine;
+  final bool available;
+  final bool pending;
+  final VoidCallback onTap;
 
-  const _MachineTile({required this.machine});
+  const _MachineTile({
+    required this.machine,
+    required this.available,
+    required this.pending,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final color = machine.available ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
-    final bg = machine.available ? const Color(0xFFEFFDF4) : const Color(0xFFFFF2F2);
+    final color = available ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    final bg = available ? const Color(0xFFEFFDF4) : const Color(0xFFFFF2F2);
 
     return InkWell(
-      onTap: machine.available
-          ? () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PaymentQrScreen()),
-              );
-            }
-          : null,
+      onTap: (available && !pending) ? onTap : null,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: 150,
@@ -210,14 +546,34 @@ class _MachineTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              machine.available ? 'Verfügbar (zum Bezahlen tippen)' : 'Besetzt',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: color,
+            if (pending)
+              const Row(
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Wird bezahlt...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0369A1),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                available ? 'Verfügbar (zum Bezahlen tippen)' : 'Besetzt',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
               ),
-            ),
           ],
         ),
       ),

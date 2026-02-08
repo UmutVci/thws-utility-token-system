@@ -1,9 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import 'employee_price_input.dart';
 import 'employee_primary_button.dart';
-import '../../wallet/payment/modals/payment_result_modal.dart';
 
 class EmployeeQrCard extends StatefulWidget {
   const EmployeeQrCard({super.key});
@@ -33,14 +34,21 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
       return;
     }
 
-    final nonce = DateTime.now().microsecondsSinceEpoch;
-    final data = 'payment|amount=${amount.toStringAsFixed(2)}|nonce=$nonce';
+    final amountMinor = (amount * 100).round(); // 2 decimals
+    final orderId = DateTime.now().millisecondsSinceEpoch;
+
+    // Keep QR payload compatible with payment_qr_screen parser.
+    final payload = jsonEncode({
+      'service': 'MENSA',
+      'amount': amountMinor,
+      'orderId': orderId,
+    });
 
     setState(() {
       _error = null;
     });
 
-    _showQrSheet(context, data);
+    _showQrSheet(context, payload);
   }
 
   void _showQrSheet(BuildContext rootContext, String data) {
@@ -111,40 +119,10 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    foregroundColor: Colors.white,
-                                    minimumSize: const Size.fromHeight(46),
-                                  ),
-                                  onPressed: () => _simulatePayment(
-                                    rootContext: rootContext,
-                                    modalContext: modalContext,
-                                    success: true,
-                                  ),
-                                  child: const Text('Transaktion simulieren (OK)'),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
-                                    minimumSize: const Size.fromHeight(46),
-                                  ),
-                                  onPressed: () => _simulatePayment(
-                                    rootContext: rootContext,
-                                    modalContext: modalContext,
-                                    success: false,
-                                  ),
-                                  child: const Text('Transaktion simulieren (Fehler)'),
-                                ),
-                              ),
-                            ],
+                          const Text(
+                            'Student scannt diesen QR-Code und bestätigt die Zahlung in MetaMask.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.black54),
                           ),
                         ],
                       ),
@@ -159,28 +137,6 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
     );
   }
 
-  void _simulatePayment({
-    required BuildContext rootContext,
-    required BuildContext modalContext,
-    required bool success,
-  }) {
-    if (Navigator.of(modalContext, rootNavigator: true).canPop()) {
-      Navigator.of(modalContext, rootNavigator: true).pop(); // close QR sheet
-    }
-    showModalBottomSheet(
-      context: rootContext,
-      isDismissible: true,
-      enableDrag: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => PaymentResultModal(
-        success: success,
-        onClose: () {
-          Navigator.of(rootContext, rootNavigator: true).maybePop();
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -191,12 +147,13 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
         borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-          CircleAvatar(
+          const CircleAvatar(
             radius: 36,
-            backgroundColor: const Color(0xFFE9EEFF),
-            child: Icon(Icons.qr_code_2, size: 36, color: const Color(0xFF3E581E)),
+            backgroundColor: Color(0xFFE9EEFF),
+            child: Icon(Icons.qr_code_2, size: 36, color: Color(0xFF3E581E)),
           ),
           const SizedBox(height: 20),
           const Text(
@@ -205,7 +162,7 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'The QR code will be generated\nwith this price',
+            'The QR code will be generated with this THWS amount',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.black54),
           ),
@@ -222,7 +179,6 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
           EmployeePrimaryButton(
             onTap: () => _generateQr(context),
           ),
-          const Spacer(),
         ],
       ),
     );

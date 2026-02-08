@@ -30,8 +30,8 @@ class WalletConnectService extends ChangeNotifier {
         metadata: const PairingMetadata(
           name: 'THWS Token',
           description: 'THWS Utility Token App',
-          url: 'https://example.com',
-          icons: ['https://raw.githubusercontent.com/flutter/website/master/src/_assets/image/flutter-lockup-bg.jpg'],
+          url: 'https://www.thws.de',
+          icons: ['https://www.thws.de/fileadmin/public/Images/favicon/apple-touch-icon.png'],
           redirect: Redirect(
             native: 'thwstoken://wc',
             linkMode: true,
@@ -83,6 +83,15 @@ class WalletConnectService extends ChangeNotifier {
       debugPrint('[WC] connect called');
       if (_web3App == null) {
         await init();
+      }
+      if (_session != null && connectedAddress != null) {
+        _isConnecting = false;
+        _pairingUri = null;
+        notifyListeners();
+        return null;
+      }
+      if (_isConnecting) {
+        return _pairingUri;
       }
 
       _isConnecting = true;
@@ -138,11 +147,11 @@ class WalletConnectService extends ChangeNotifier {
     String value = '0x0',
   }) async {
     if (_web3App == null || _session == null) {
-      throw Exception('Wallet not connected');
+      throw Exception('Wallet ist nicht verbunden.');
     }
     final from = connectedAddress;
     if (from == null) {
-      throw Exception('No connected address');
+      throw Exception('Keine Wallet-Adresse verfügbar.');
     }
 
     final result = await _web3App!.request(

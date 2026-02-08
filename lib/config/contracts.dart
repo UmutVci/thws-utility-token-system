@@ -1,8 +1,8 @@
 class ContractsConfig {
   // Update to your backend base URL (use your machine IP for real device).
-  static const String backendUrl = 'http://10.108.26.215:8080';
+  static const String backendUrl = 'http://192.168.0.101:8080';
   static const String rpcUrl = 'https://eth-sepolia.g.alchemy.com/v2/sG7jCywWv-EBDBzYhN1eH';
   static const int chainId = 11155111;
-  static const String paymentManager = '0x2Fe543C1FEf85224c040506aFCE4E17e705DF3d9';
-  static const String token = '0xF8B980bD0C33Df169f0d529d27c70E413C7BF5BC';
+  static const String paymentManager = '0xaAdB4d65E9C73A99EF93333AEb29185e22dE4e2F';
+  static const String token = '0x54A0dB9080630604ea0167d588448A6aEf0f40B7';
 }

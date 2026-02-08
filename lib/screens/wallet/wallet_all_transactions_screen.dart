@@ -15,6 +15,9 @@ class WalletAllTransactionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sortedTransactions = [...transactions]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
@@ -31,13 +34,20 @@ class WalletAllTransactionsScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
       ),
       body: SafeArea(
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          itemCount: transactions.length,
-          itemBuilder: (context, index) => TransactionTile(
-            tx: transactions[index],
-          ),
-        ),
+        child: sortedTransactions.isEmpty
+            ? const Center(
+                child: Text(
+                  'Noch keine Transaktionen vorhanden.',
+                  style: TextStyle(color: Colors.black54),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                itemCount: sortedTransactions.length,
+                itemBuilder: (context, index) => TransactionTile(
+                  tx: sortedTransactions[index],
+                ),
+              ),
       ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: 0,

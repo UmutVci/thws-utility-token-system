@@ -12,7 +12,7 @@ import 'wallet_header.dart';
 import 'wallet_balance_card.dart';
 import 'wallet_stats_row.dart';
 import 'wallet_transactions_section.dart';
-import '../../models/transaction_item.dart';
+import '../../services/transaction_history_service.dart';
 import '../../services/wallet_connect_singleton.dart';
 
 class WalletScreen extends StatefulWidget {
@@ -26,14 +26,17 @@ class _WalletScreenState extends State<WalletScreen> {
   late final AppLifecycleListener _lifecycleListener;
   String? _tokenBalance;
   bool _isLoadingBalance = false;
-  // TODO: Replace with your WalletConnect Cloud projectId.
+  bool _refreshScheduled = false;
   final _wcService = walletConnectService;
+  final _historyService = transactionHistoryService;
 
   @override
   void initState() {
     super.initState();
     _wcService.addListener(_onServiceChanged);
+    _historyService.addListener(_onServiceChanged);
     _wcService.init();
+    _historyService.init();
     _lifecycleListener = AppLifecycleListener(
       onStateChange: (state) {
         if (state == AppLifecycleState.resumed) {
@@ -47,14 +50,24 @@ class _WalletScreenState extends State<WalletScreen> {
   void dispose() {
     _lifecycleListener.dispose();
     _wcService.removeListener(_onServiceChanged);
+    _historyService.removeListener(_onServiceChanged);
     super.dispose();
   }
 
   void _onServiceChanged() {
     if (mounted) setState(() {});
     if (_wcService.isConnected) {
-      _refreshTokenBalance();
+      _scheduleRefresh();
     }
+  }
+
+  void _scheduleRefresh() {
+    if (_refreshScheduled) return;
+    _refreshScheduled = true;
+    Future.delayed(const Duration(milliseconds: 300), () async {
+      _refreshScheduled = false;
+      await _refreshTokenBalance();
+    });
   }
 
   Future<ContractAbi> _loadAbi(String assetPath, String name) async {
@@ -83,18 +96,19 @@ class _WalletScreenState extends State<WalletScreen> {
         contract: token,
         function: balanceFn,
         params: [EthereumAddress.fromHex(address)],
-      );
+      ).timeout(const Duration(seconds: 12));
 
       if (result.isNotEmpty && result.first is BigInt) {
         final raw = result.first as BigInt;
-        final decimals = 2;
+        const decimals = 2;
         final divisor = BigInt.from(10).pow(decimals);
         final whole = raw ~/ divisor;
         final frac = (raw % divisor).toString().padLeft(decimals, '0');
-        _tokenBalance = '${whole.toString()}.${frac}';
+        _tokenBalance = '$whole.$frac';
       }
-    } catch (e) {
-      // ignore; UI will show last known balance
+    } catch (_) {
+      // Prevent indefinite "Lade..." state if first load fails.
+      _tokenBalance ??= '0.00';
     } finally {
       if (mounted) setState(() => _isLoadingBalance = false);
     }
@@ -102,6 +116,12 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Future<void> _connectWallet() async {
     try {
+      if (_wcService.isConnected && _wcService.connectedAddress != null) {
+        await _wcService.ensureSepoliaChain();
+        await _refreshTokenBalance();
+        return;
+      }
+
       final uri = await _wcService.connect();
       await _wcService.ensureSepoliaChain();
       await _refreshTokenBalance();
@@ -110,7 +130,7 @@ class _WalletScreenState extends State<WalletScreen> {
       if (target == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pairing URI alınamadı (projectId?).')),
+          const SnackBar(content: Text('Pairing-URI konnte nicht erstellt werden.')),
         );
         return;
       }
@@ -122,7 +142,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('MetaMask açılamadı. Yüklü mü?')),
+          const SnackBar(content: Text('MetaMask konnte nicht geöffnet werden.')),
         );
       }
     } catch (e) {
@@ -137,15 +157,18 @@ class _WalletScreenState extends State<WalletScreen> {
     await _wcService.disconnect();
   }
 
-  List<TransactionItem> _mockTransactions() {
-    return const [];
-  }
-
   @override
   Widget build(BuildContext context) {
-    final allTransactions = _mockTransactions();
+    final allTransactions = [..._historyService.transactions]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final recentTransactions =
         allTransactions.length > 3 ? allTransactions.take(3).toList() : allTransactions;
+    final totalIncome = allTransactions
+        .where((tx) => !tx.isExpense)
+        .fold<double>(0, (sum, tx) => sum + tx.amount.abs());
+    final totalExpense = allTransactions
+        .where((tx) => tx.isExpense)
+        .fold<double>(0, (sum, tx) => sum + tx.amount.abs());
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -163,7 +186,8 @@ class _WalletScreenState extends State<WalletScreen> {
               onConnect: _connectWallet,
               onDisconnect: _disconnectWallet,
               onResync: _wcService.resyncActiveSession,
-              debugStatus: 'connecting=${_wcService.isConnecting} connected=${_wcService.isConnected} addr=${_wcService.connectedAddress ?? "-"}',
+              debugStatus:
+                  'connecting=${_wcService.isConnecting} connected=${_wcService.isConnected} addr=${_wcService.connectedAddress ?? "-"}',
             ),
             const SizedBox(height: 16),
             WalletBalanceCard(
@@ -171,11 +195,19 @@ class _WalletScreenState extends State<WalletScreen> {
               balanceText: _tokenBalance,
               onRefresh: () async {
                 await _wcService.ensureSepoliaChain();
-      await _refreshTokenBalance();
+                await _refreshTokenBalance();
               },
             ),
+            if (_isLoadingBalance)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
             const SizedBox(height: 20),
-            const WalletStatsRow(),
+            WalletStatsRow(
+              totalIncome: totalIncome,
+              totalExpense: totalExpense,
+            ),
             const SizedBox(height: 24),
             WalletTransactionsSection(
               transactions: recentTransactions,
@@ -211,8 +243,10 @@ class _WalletConnectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metaMaskDeepLink =
-        pairingUri == null ? null : Uri.parse('metamask://wc?uri=${Uri.encodeComponent(pairingUri.toString())}');
+    final metaMaskDeepLink = pairingUri == null
+        ? null
+        : Uri.parse(
+            'metamask://wc?uri=${Uri.encodeComponent(pairingUri.toString())}');
 
     return Container(
       width: double.infinity,
@@ -259,12 +293,13 @@ class _WalletConnectCard extends StatelessWidget {
               height: 44,
               child: OutlinedButton(
                 onPressed: onDisconnect,
-                child: const Text('Disconnect'),
+                child: const Text('Trennen'),
               ),
             ),
           ] else ...[
             const Text(
-              'Diese DApp verbindet sich ausschließlich mit MetaMask. Sobald du auf die Schaltfläche unten klickst, wird MetaMask geöffnet und du wirst um Bestätigung gebeten.',              style: TextStyle(color: Colors.black54),
+              'Diese DApp verbindet sich ausschließlich mit MetaMask. Sobald du auf die Schaltfläche unten klickst, wird MetaMask geöffnet und du wirst um Bestätigung gebeten.',
+              style: TextStyle(color: Colors.black54),
             ),
             const SizedBox(height: 12),
             SizedBox(

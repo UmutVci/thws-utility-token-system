@@ -26,6 +26,8 @@ dependencies:
 
   # External links (open MetaMask, browser, etc.)
   url_launcher: ^6.2.0
+  mobile_scanner: ^6.0.2
+  shared_preferences: ^2.3.2
 
   # iOS style icons
   cupertino_icons: ^1.0.8
@@ -35,6 +37,14 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/thws_logo_english.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true

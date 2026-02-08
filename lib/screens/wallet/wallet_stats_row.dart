@@ -1,31 +1,42 @@
 import 'package:flutter/material.dart';
 
 class WalletStatsRow extends StatelessWidget {
-  const WalletStatsRow({super.key});
+  const WalletStatsRow({
+    super.key,
+    required this.totalIncome,
+    required this.totalExpense,
+  });
+
+  final double totalIncome;
+  final double totalExpense;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(
           child: _StatCard(
             title: 'Einzahlungen',
-            value: '125,00 THWS',
-            sub: '≈ 125,00 € · Dieser Monat',
+            value: '${_formatAmount(totalIncome)} THWS',
+            sub: 'Gesamt',
             up: false,
           ),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
             title: 'Ausgaben',
-            value: '77,15 THWS',
-            sub: '≈ 77,15 € · Dieser Monat',
+            value: '${_formatAmount(totalExpense)} THWS',
+            sub: 'Gesamt',
             up: true,
           ),
         ),
       ],
     );
+  }
+
+  static String _formatAmount(double value) {
+    return value.toStringAsFixed(2).replaceAll('.', ',');
   }
 }
 
