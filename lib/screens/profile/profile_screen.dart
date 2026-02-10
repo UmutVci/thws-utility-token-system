@@ -3,6 +3,10 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import 'help_and_support_screen.dart';
 import 'security_privacy_screen.dart';
+import '../../models/student_profile.dart';
+import '../../services/student_profile_service.dart';
+import '../../services/user_session_service.dart';
+import '../../services/wallet_connect_singleton.dart';
 
 // ✅ Logout Ziel
 import '../role/role_selection_screen.dart';
@@ -20,8 +24,13 @@ class _ProfilePageState extends State<ProfilePage> {
   // ✅ Umschalten ohne Navigator.push -> BottomNav bleibt sichtbar
   bool _showHelpSupport = false;
   bool _showSecurityPrivacy = false;
+  bool _isLoadingProfile = true;
+  String? _profileError;
+  String? _knummer;
 
-  final Map<String, String> studentData = {
+  final _profileService = StudentProfileService();
+  final _sessionService = UserSessionService();
+  Map<String, String> studentData = {
     'name': 'Max Mustermann',
     'id': '1234567',
     'course': 'Informatik (B.Sc.)',
@@ -32,12 +41,73 @@ class _ProfilePageState extends State<ProfilePage> {
     'campus': 'Würzburg - SHL',
   };
 
-  late final String cardId;
+  String cardId = '';
 
   @override
   void initState() {
     super.initState();
-    cardId = 'THWS-ID:${studentData['id']}:${DateTime.now().millisecondsSinceEpoch}';
+    _seedNameFromSession();
+    _loadStudentProfile();
+  }
+
+  Future<void> _seedNameFromSession() async {
+    final displayName = await _sessionService.getDisplayName();
+    if (!mounted || displayName == null || displayName.trim().isEmpty) {
+      _updateCardId();
+      return;
+    }
+    setState(() {
+      studentData['name'] = displayName.trim();
+      _updateCardId();
+    });
+  }
+
+  void _updateCardId() {
+    cardId =
+        'THWS-ID:${studentData['id']}:${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  Future<void> _loadStudentProfile() async {
+    final knummer = await _sessionService.getKnummer();
+    setState(() {
+      _isLoadingProfile = true;
+      _profileError = null;
+      _knummer = knummer;
+    });
+
+    try {
+      final profile = await _profileService.fetchStudentProfile(
+        knummer: knummer,
+      );
+      final next = _toStudentMap(profile);
+      if (!mounted) return;
+      setState(() {
+        studentData = next;
+        _updateCardId();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _profileError = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingProfile = false);
+      }
+    }
+  }
+
+  Map<String, String> _toStudentMap(StudentProfile profile) {
+    return {
+      'name': profile.name,
+      'id': profile.matriculationNumber,
+      'course': profile.course,
+      'semester': profile.semester,
+      'validUntil': profile.validUntil,
+      'email': profile.email,
+      'phone': profile.phone,
+      'campus': profile.campus,
+    };
   }
 
   @override
@@ -60,6 +130,35 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_isLoadingProfile)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            if (_profileError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  _profileError!,
+                  style: const TextStyle(
+                    color: Color(0xFFB91C1C),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            if (_knummer == null || _knummer!.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Keine K-Nummer in der Sitzung gefunden.',
+                  style: TextStyle(
+                    color: Color(0xFFB91C1C),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             _studentCard(),
             const SizedBox(height: 14),
             _qrCard(),
@@ -80,7 +179,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // ✅ Logout -> RoleSelectionScreen (Stack leeren)
-  void _logoutToRoleSelection() {
+  Future<void> _logoutToRoleSelection() async {
+    await walletConnectService.disconnect();
+    await _sessionService.clear();
+    if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
       (route) => false,
@@ -338,9 +440,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
             ),
           ),
-          _infoRow(Icons.school_outlined, 'Studiengang', studentData['course']!),
-          _infoRow(Icons.calendar_today_outlined, 'Semester', studentData['semester']!),
-          _infoRow(Icons.location_on_outlined, 'Campus', studentData['campus']!),
+          _infoRow(
+              Icons.school_outlined, 'Studiengang', studentData['course']!),
+          _infoRow(Icons.calendar_today_outlined, 'Semester',
+              studentData['semester']!),
+          _infoRow(
+              Icons.location_on_outlined, 'Campus', studentData['campus']!),
           _infoRow(Icons.mail_outline, 'E-Mail', studentData['email']!),
           _infoRow(Icons.phone_outlined, 'Telefon', studentData['phone']!),
           const SizedBox(height: 6),
@@ -378,7 +483,8 @@ class _ProfilePageState extends State<ProfilePage> {
           _menuItem(Icons.shield_outlined, 'Sicherheit & Datenschutz',
               onTap: () => setState(() => _showSecurityPrivacy = true)),
           _divider(),
-          _menuItem(Icons.credit_card_outlined, 'Zahlungsmethoden', onTap: () {}),
+          _menuItem(Icons.credit_card_outlined, 'Zahlungsmethoden',
+              onTap: () {}),
           _divider(),
           _menuItem(
             Icons.help_outline,
@@ -413,7 +519,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             if (badge != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEF4444),
                   borderRadius: BorderRadius.circular(999),
@@ -452,9 +559,9 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 12),
           _kvRow('Version', '1.0.0'),
           const SizedBox(height: 10),
-          _kvRow('Blockchain Network', 'THWS Chain'),
+          _kvRow('Blockchain-Netzwerk', 'THWS-Kette'),
           const SizedBox(height: 10),
-          _kvRow('Contract Version', '2.1.0'),
+          _kvRow('Vertragsversion', '2.1.0'),
         ],
       ),
     );
@@ -482,8 +589,8 @@ class _ProfilePageState extends State<ProfilePage> {
       onPressed: _logoutToRoleSelection, // ✅ geändert
       icon: const Icon(Icons.logout, color: Color(0xFFEF4444)),
       label: const Text('Abmelden',
-          style: TextStyle(
-              color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+          style:
+              TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
         backgroundColor: const Color(0xFFFEE2E2),
@@ -506,7 +613,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         SizedBox(height: 6),
         Text(
-          'Powered by Blockchain Technology',
+          'Basierend auf Blockchain-Technologie',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
         ),

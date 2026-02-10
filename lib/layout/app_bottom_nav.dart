@@ -31,13 +31,13 @@ class AppBottomNav extends StatelessWidget {
         children: [
           _NavItem(
             icon: Icons.account_balance_wallet_outlined,
-            label: 'Wallet',
+            label: 'Geldbörse',
             selected: currentIndex == 0,
             onTap: () => onTap(0),
           ),
           _NavItem(
             icon: Icons.grid_view,
-            label: 'Services',
+            label: 'Dienste',
             selected: currentIndex == 1,
             onTap: () => onTap(1),
           ),

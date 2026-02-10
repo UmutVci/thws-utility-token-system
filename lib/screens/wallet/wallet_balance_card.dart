@@ -53,7 +53,7 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children:  [
               Text(
-                'THWS Coin Guthaben',
+                'THWS-Token-Guthaben',
                 style: TextStyle(color: Colors.white70),
               ),
               Row(
@@ -96,7 +96,7 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
           if (_isBalanceVisible && widget.isConnected && widget.balanceText != null) ...[
             const SizedBox(height: 4),
             const Text(
-              'On-chain THWS',
+              'THWS auf der Blockchain',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 14,
@@ -115,13 +115,18 @@ class _WalletBalanceCardState extends State<WalletBalanceCard> {
                   icon: Icons.add,
                   label: 'Aufladen',
                   filled: false,
-                  onTap: () {
-                    showModalBottomSheet(
+                  onTap: () async {
+                    final minted = await showModalBottomSheet<bool>(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.white,
-                      builder: (_) => const AddMoneyModal(),
+                      builder: (_) => AddMoneyModal(
+                        currentBalanceText: widget.balanceText,
+                      ),
                     );
+                    if (minted == true && widget.onRefresh != null) {
+                      await widget.onRefresh!();
+                    }
                   },
                 ),
               ),

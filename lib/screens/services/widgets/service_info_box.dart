@@ -22,14 +22,14 @@ class ServiceInfoBox extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Weitere Services in Entwicklung',
+                  'Weitere Dienste in Entwicklung',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Raumbuchungen, Carsharing und weitere Campus-Services kommen bald.',
+                  'Raumbuchungen, Carsharing und weitere Campus-Dienste kommen bald.',
                   style: TextStyle(color: Colors.black54),
                 ),
               ],

@@ -12,7 +12,7 @@ class EmployeePriceInput extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Price (THWS)',
+          'Betrag (THWS)',
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),

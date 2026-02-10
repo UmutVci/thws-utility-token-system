@@ -33,19 +33,27 @@ class WohnheimMachinesPage extends StatefulWidget {
 }
 
 class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
-  static const int _priceMinor = 150; // 1.50 THWS with 2 decimals
+  static const int _priceMinor = 150; // 1,50 THWS mit 2 Nachkommastellen
+  static final BigInt _maxUint256 = BigInt.parse(
+    'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+    radix: 16,
+  );
 
   final _wcService = walletConnectService;
   final _historyService = transactionHistoryService;
 
   final Map<String, int> _lockedUntilByLabel = {};
   final Set<String> _pendingMachines = {};
+  late final Future<ContractAbi> _tokenAbiFuture;
+  late final Future<ContractAbi> _pmAbiFuture;
 
   Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
+    _tokenAbiFuture = _loadAbi('assets/abi/THWSToken.json', 'THWSToken');
+    _pmAbiFuture = _loadAbi('assets/abi/PaymentManager.json', 'PaymentManager');
     _wcService.init();
     _wcService.resyncActiveSession();
     _historyService.init();
@@ -70,10 +78,15 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
     return out;
   }
 
-  int _machineIdFromLabel(String label) {
-    final match = RegExp(r'(\d+)').firstMatch(label);
-    if (match == null) return 1;
-    return int.tryParse(match.group(1)!) ?? 1;
+  int _machineIdForMachine(MachineInfo machine) {
+    final match = RegExp(r'(\d+)').firstMatch(machine.label);
+    final number = match == null ? 1 : (int.tryParse(match.group(1)!) ?? 1);
+
+    // Waschmaschinen und Trockner dürfen auf der Chain nicht dieselbe ID teilen.
+    if (machine.type == 'Trockner') {
+      return 100 + number;
+    }
+    return number;
   }
 
   String _dormCodeForTitle(String title) {
@@ -128,45 +141,45 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
     }
 
     try {
-      final pmAbi = await _loadAbi('assets/abi/PaymentManager.json', 'PaymentManager');
+      final pmAbi = await _pmAbiFuture;
       final pmContract = DeployedContract(
         pmAbi,
         EthereumAddress.fromHex(ContractsConfig.paymentManager),
       );
       final lockFn = pmContract.function('getMachineLockedUntil');
 
-      final client = Web3Client(
-        ContractsConfig.rpcUrl,
-        http.Client(),
-      );
-
-      final dormCode = _dormCodeForTitle(widget.title);
-      final next = <String, int>{};
-      for (final group in widget.groups) {
-        for (final machine in group.machines) {
-          final machineId = _machineIdFromLabel(machine.label);
-          final result = await client.call(
-            contract: pmContract,
-            function: lockFn,
-            params: [
-              _bytes32(dormCode),
-              BigInt.from(machineId),
-            ],
-          );
-          if (result.isNotEmpty && result.first is BigInt) {
-            next[machine.label] = (result.first as BigInt).toInt();
+      final client = Web3Client(ContractsConfig.rpcUrl, http.Client());
+      try {
+        final dormCode = _dormCodeForTitle(widget.title);
+        final next = <String, int>{};
+        for (final group in widget.groups) {
+          for (final machine in group.machines) {
+            final machineId = _machineIdForMachine(machine);
+            final result = await client.call(
+              contract: pmContract,
+              function: lockFn,
+              params: [
+                _bytes32(dormCode),
+                BigInt.from(machineId),
+              ],
+            );
+            if (result.isNotEmpty && result.first is BigInt) {
+              next[machine.label] = (result.first as BigInt).toInt();
+            }
           }
         }
-      }
 
-      if (!mounted) return;
-      setState(() {
-        _lockedUntilByLabel
-          ..clear()
-          ..addAll(next);
-      });
+        if (!mounted) return;
+        setState(() {
+          _lockedUntilByLabel
+            ..clear()
+            ..addAll(next);
+        });
+      } finally {
+        client.dispose();
+      }
     } catch (_) {
-      // Keep last known lock state on RPC error.
+      // Letzten bekannten Schlosszustand bei RPC-Fehler beibehalten.
     }
   }
 
@@ -185,7 +198,9 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
       if (!mounted) return;
       final dt = DateTime.fromMillisecondsSinceEpoch(lockedUntil * 1000);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Maschine ist belegt bis ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}')), 
+        SnackBar(
+            content: Text(
+                'Maschine ist belegt bis ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}')),
       );
       return;
     }
@@ -194,10 +209,12 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
     setState(() => _pendingMachines.add(label));
 
     try {
+      // MetaMask'ı olabildiğince erken öne getir, kullanıcı beklemesin.
+      await _openMetaMask();
       await _wcService.ensureSepoliaChain();
 
-      final tokenAbi = await _loadAbi('assets/abi/THWSToken.json', 'THWSToken');
-      final pmAbi = await _loadAbi('assets/abi/PaymentManager.json', 'PaymentManager');
+      final tokenAbi = await _tokenAbiFuture;
+      final pmAbi = await _pmAbiFuture;
 
       final tokenContract = DeployedContract(
         tokenAbi,
@@ -209,14 +226,14 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
       );
 
       final dormCode = _dormCodeForTitle(widget.title);
-      final machineId = _machineIdFromLabel(machine.label);
+      final machineId = _machineIdForMachine(machine);
 
       final approveFn = tokenContract.function('approve');
       final allowanceFn = tokenContract.function('allowance');
       final approveData = bytesToHex(
         approveFn.encodeCall([
           EthereumAddress.fromHex(ContractsConfig.paymentManager),
-          BigInt.from(_priceMinor),
+          _maxUint256,
         ]),
         include0x: true,
       );
@@ -230,10 +247,8 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
         include0x: true,
       );
 
-      final allowanceResult = await Web3Client(
-        ContractsConfig.rpcUrl,
-        http.Client(),
-      ).call(
+      final allowanceClient = Web3Client(ContractsConfig.rpcUrl, http.Client());
+      final allowanceResult = await allowanceClient.call(
         contract: tokenContract,
         function: allowanceFn,
         params: [
@@ -241,6 +256,7 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
           EthereumAddress.fromHex(ContractsConfig.paymentManager),
         ],
       );
+      allowanceClient.dispose();
       final allowance = allowanceResult.isNotEmpty && allowanceResult.first is BigInt
           ? allowanceResult.first as BigInt
           : BigInt.zero;
@@ -250,16 +266,17 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Warte auf Freigabe in MetaMask...')),
         );
+        await _openMetaMask();
         final approveFuture = _wcService
             .sendTransaction(
               to: ContractsConfig.token,
               data: approveData,
             )
             .timeout(const Duration(seconds: 90));
-        await _openMetaMask();
         await approveFuture;
       }
 
+      await _openMetaMask();
       final payFuture = _wcService
           .sendTransaction(
             to: ContractsConfig.paymentManager,
@@ -268,10 +285,14 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
           .timeout(const Duration(seconds: 90));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Warte auf Zahlungsbestätigung in MetaMask...')),
+        const SnackBar(
+            content: Text('Warte auf Zahlungsbestätigung in MetaMask...')),
       );
-      await _openMetaMask();
       final txHash = await payFuture;
+      if (txHash == null || txHash.isEmpty) {
+        throw Exception('Keine Transaktions-Hash von MetaMask erhalten.');
+      }
+      await _wcService.waitForTransactionSuccess(txHash);
 
       final now = DateTime.now();
       await _historyService.addTransaction(
@@ -291,12 +312,15 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Zahlung gesendet. Maschine ist jetzt gesperrt.')),
+        const SnackBar(
+            content: Text('Zahlung gesendet. Maschine ist jetzt gesperrt.')),
       );
     } on TimeoutException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Zeitüberschreitung. Bitte MetaMask öffnen und Anfrage prüfen.')),
+        const SnackBar(
+            content: Text(
+                'Zeitüberschreitung. Bitte MetaMask öffnen und Anfrage prüfen.')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -371,12 +395,14 @@ class _WohnheimMachinesPageState extends State<WohnheimMachinesPage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 18, color: Colors.black54),
+                    const Icon(Icons.location_on_outlined,
+                        size: 18, color: Colors.black54),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         widget.address,
-                        style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.black87),
                       ),
                     ),
                   ],
@@ -419,7 +445,8 @@ class _MachineGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final washers = group.machines.where((m) => m.type == 'Waschmaschine').toList();
+    final washers =
+        group.machines.where((m) => m.type == 'Waschmaschine').toList();
     final dryers = group.machines.where((m) => m.type == 'Trockner').toList();
 
     return Padding(
@@ -445,7 +472,10 @@ class _MachineGroupCard extends StatelessWidget {
             if (washers.isNotEmpty) ...[
               const Text(
                 'Waschmaschinen',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF334155)),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -467,7 +497,10 @@ class _MachineGroupCard extends StatelessWidget {
             if (dryers.isNotEmpty) ...[
               const Text(
                 'Trockner',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF334155)),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -532,7 +565,8 @@ class _MachineTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     machine.type,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF475569)),
                   ),
                 ),
               ],

@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../config/contracts.dart';
 import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart';
 
-/// Lightweight WalletConnect v2 wrapper for connect/disconnect + address exposure.
+/// Schlanker WalletConnect-v2-Wrapper für Verbinden/Trennen und Adresszugriff.
 class WalletConnectService extends ChangeNotifier {
   WalletConnectService({
     required String projectId,
-    this.chains = const ['eip155:11155111'], // Sepolia
+    this.chains = const ['eip155:11155111'], // Sepolia-Netzwerk
   }) : _projectId = projectId;
 
   final String _projectId;
@@ -29,9 +31,11 @@ class WalletConnectService extends ChangeNotifier {
         relayUrl: 'wss://relay.walletconnect.com',
         metadata: const PairingMetadata(
           name: 'THWS Token',
-          description: 'THWS Utility Token App',
+          description: 'THWS Token-App',
           url: 'https://www.thws.de',
-          icons: ['https://www.thws.de/fileadmin/public/Images/favicon/apple-touch-icon.png'],
+          icons: [
+            'https://www.thws.de/fileadmin/public/Images/favicon/apple-touch-icon.png'
+          ],
           redirect: Redirect(
             native: 'thwstoken://wc',
             linkMode: true,
@@ -42,7 +46,8 @@ class WalletConnectService extends ChangeNotifier {
 
       _web3App!.onSessionConnect.subscribe((SessionConnect? event) {
         if (event != null) {
-          debugPrint('[WC] onSessionConnect received topic=${event.session.topic}');
+          debugPrint(
+              '[WC] onSessionConnect received topic=${event.session.topic}');
           _session = event.session;
           _pairingUri = null;
           _isConnecting = false;
@@ -56,7 +61,7 @@ class WalletConnectService extends ChangeNotifier {
         debugPrint('[WC] onSessionEvent: ${event?.name} ${event?.data}');
       });
 
-      // Geri geldiğinde mevcut oturumu yükle (örn. uygulamayı yeniden açınca)
+      // Vorhandene Sitzung wiederherstellen (z. B. nach erneutem App-Start)
       final List<SessionData> cachedSessions = _web3App!.sessions.getAll();
       if (cachedSessions.isNotEmpty) {
         debugPrint('[WC] found cached session, reusing');
@@ -74,7 +79,7 @@ class WalletConnectService extends ChangeNotifier {
         notifyListeners();
       });
     } catch (e) {
-      debugPrint('Initialisierungsfehler: $e'); // Almanca: Başlatma hatası
+      debugPrint('Initialisierungsfehler: $e');
     }
   }
 
@@ -101,7 +106,14 @@ class WalletConnectService extends ChangeNotifier {
         requiredNamespaces: {
           'eip155': RequiredNamespace(
             chains: chains,
-            methods: const ['eth_sign', 'personal_sign', 'eth_sendTransaction', 'eth_getBalance', 'wallet_switchEthereumChain', 'wallet_addEthereumChain'],
+            methods: const [
+              'eth_sign',
+              'personal_sign',
+              'eth_sendTransaction',
+              'eth_getBalance',
+              'wallet_switchEthereumChain',
+              'wallet_addEthereumChain'
+            ],
             events: const ['accountsChanged', 'chainChanged'],
           ),
         },
@@ -110,14 +122,14 @@ class WalletConnectService extends ChangeNotifier {
       _pairingUri = connectResponse.uri;
       notifyListeners();
 
-      // Session tamamlandığında state'i güncelle.
+      // Status aktualisieren, sobald die Sitzung abgeschlossen ist.
       _watchSessionFuture(connectResponse.session.future);
 
       return _pairingUri;
     } catch (e) {
       _isConnecting = false;
       _pairingUri = null;
-      debugPrint('Verbindungsfehler: $e'); // Almanca: Bağlantı hatası
+      debugPrint('Verbindungsfehler: $e');
       notifyListeners();
       return null;
     }
@@ -132,7 +144,7 @@ class WalletConnectService extends ChangeNotifier {
         reason: Errors.getSdkError(Errors.USER_DISCONNECTED),
       );
     } catch (e) {
-      debugPrint('Fehler beim Trennen: $e'); // Almanca: Bağlantıyı kesme hatası
+      debugPrint('Fehler beim Trennen: $e');
     } finally {
       _session = null;
       _pairingUri = null;
@@ -175,6 +187,46 @@ class WalletConnectService extends ChangeNotifier {
   }
 
   Future<void> refreshBalance() => _refreshBalanceInternal();
+
+  Future<void> waitForTransactionSuccess(
+    String txHash, {
+    Duration timeout = const Duration(minutes: 2),
+    Duration pollInterval = const Duration(seconds: 2),
+  }) async {
+    if (_web3App == null || _session == null) {
+      throw Exception('Wallet ist nicht verbunden.');
+    }
+
+    final startedAt = DateTime.now();
+    while (DateTime.now().difference(startedAt) < timeout) {
+      final receipt = await _web3App!.request(
+        topic: _session!.topic,
+        chainId: chains.first,
+        request: SessionRequestParams(
+          method: 'eth_getTransactionReceipt',
+          params: [txHash],
+        ),
+      );
+
+      if (receipt is Map<String, dynamic>) {
+        final status = '${receipt['status'] ?? ''}'.toLowerCase();
+        if (status == '0x1' || status == '1') return;
+        if (status == '0x0' || status == '0') {
+          throw Exception('Transaktion wurde auf der Chain verworfen.');
+        }
+      } else if (receipt != null) {
+        final status = '$receipt'.toLowerCase();
+        if (status.contains('0x1')) return;
+      }
+
+      await Future.delayed(pollInterval);
+    }
+
+    throw TimeoutException(
+      'Transaktionsbestätigung hat zu lange gedauert.',
+      timeout,
+    );
+  }
 
   Future<void> ensureSepoliaChain() async {
     if (_web3App == null || _session == null) return;
@@ -219,7 +271,7 @@ class WalletConnectService extends ChangeNotifier {
     if (cachedSessions.isEmpty) return;
     debugPrint('[WC] resyncActiveSession using cached session');
     final next = cachedSessions.first;
-    // Ensure the cached session supports the required chain (Sepolia).
+    // Sicherstellen, dass die zwischengespeicherte Sitzung Sepolia unterstützt.
     final accounts = next.namespaces['eip155']?.accounts ?? const [];
     final hasSepolia = accounts.any((a) => a.startsWith('eip155:11155111:'));
     if (!hasSepolia) {
@@ -295,10 +347,13 @@ class WalletConnectService extends ChangeNotifier {
   }
 
   Uri? get pairingUri => _pairingUri;
-  Uri? get metamaskDeepLink =>
-      _pairingUri == null ? null : Uri.parse('metamask://wc?uri=${Uri.encodeComponent(_pairingUri.toString())}');
+  Uri? get metamaskDeepLink => _pairingUri == null
+      ? null
+      : Uri.parse(
+          'metamask://wc?uri=${Uri.encodeComponent(_pairingUri.toString())}');
   bool get isConnected => _session != null;
   bool get isConnecting => _isConnecting;
   double? get nativeBalanceEth => _nativeBalanceEth;
-  String? get formattedBalance => _nativeBalanceEth == null ? null : _nativeBalanceEth!.toStringAsFixed(4);
+  String? get formattedBalance =>
+      _nativeBalanceEth == null ? null : _nativeBalanceEth!.toStringAsFixed(4);
 }

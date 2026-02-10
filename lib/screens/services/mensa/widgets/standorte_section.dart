@@ -178,7 +178,7 @@ class _LocationItem extends StatelessWidget {
   }
 }
 
-/// Google Maps helper (TEK YER)
+/// Google-Maps-Helfer (zentral)
 Future<void> openGoogleMaps(String address) async {
   final uri = Uri.parse(
     'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}',
@@ -190,6 +190,6 @@ Future<void> openGoogleMaps(String address) async {
   );
 
   if (!launched) {
-    debugPrint('Google Maps açılamadı: $uri');
+    debugPrint('Google Maps konnte nicht geöffnet werden: $uri');
   }
 }

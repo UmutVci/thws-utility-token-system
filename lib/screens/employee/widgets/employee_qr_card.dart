@@ -37,7 +37,7 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
     final amountMinor = (amount * 100).round(); // 2 decimals
     final orderId = DateTime.now().millisecondsSinceEpoch;
 
-    // Keep QR payload compatible with payment_qr_screen parser.
+    // QR-Payload kompatibel zum Parser in payment_qr_screen halten.
     final payload = jsonEncode({
       'service': 'MENSA',
       'amount': amountMinor,
@@ -120,7 +120,7 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            'Student scannt diesen QR-Code und bestätigt die Zahlung in MetaMask.',
+                            'Studierende scannen diesen QR-Code und bestätigen die Zahlung in MetaMask.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.black54),
                           ),
@@ -157,12 +157,12 @@ class _EmployeeQrCardState extends State<EmployeeQrCard> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Enter Payment Amount',
+            'Zahlungsbetrag eingeben',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           const Text(
-            'The QR code will be generated with this THWS amount',
+            'Der QR-Code wird mit diesem THWS-Betrag erzeugt',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.black54),
           ),

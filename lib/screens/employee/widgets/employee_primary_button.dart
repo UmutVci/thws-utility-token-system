@@ -24,7 +24,7 @@ class EmployeePrimaryButton extends StatelessWidget {
         ),
         child: const Center(
           child: Text(
-            'Generate QR Code',
+            'QR-Code erzeugen',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,

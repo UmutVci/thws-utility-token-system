@@ -1,5 +1,5 @@
 class ContractsConfig {
-  // Update to your backend base URL (use your machine IP for real device).
+  // Auf die Backend-Basis-URL aktualisieren (bei echtem Gerät die lokale IP nutzen).
   static const String backendUrl = 'http://192.168.0.101:8080';
   static const String rpcUrl = 'https://eth-sepolia.g.alchemy.com/v2/sG7jCywWv-EBDBzYhN1eH';
   static const int chainId = 11155111;

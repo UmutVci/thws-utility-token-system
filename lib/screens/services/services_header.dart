@@ -9,7 +9,7 @@ class ServicesHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
         Text(
-          'Services',
+          'Dienste',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,

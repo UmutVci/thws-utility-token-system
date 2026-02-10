@@ -41,7 +41,7 @@ class ServicesGrid extends StatelessWidget {
               icon: Icons.home,
               iconBg: const Color(0xFFE6F0FF),
               title: 'Wohnheim',
-              subtitle: 'Standorte & Services',
+              subtitle: 'Standorte & Dienste',
               onTap: onWohnheimTap,
             ),
             const ServiceCard(

@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web3dart/web3dart.dart';
 
 import '../../config/contracts.dart';
@@ -12,6 +14,9 @@ import 'wallet_header.dart';
 import 'wallet_balance_card.dart';
 import 'wallet_stats_row.dart';
 import 'wallet_transactions_section.dart';
+import '../../models/transaction_item.dart';
+import '../../services/student_profile_service.dart';
+import '../../services/user_session_service.dart';
 import '../../services/transaction_history_service.dart';
 import '../../services/wallet_connect_singleton.dart';
 
@@ -27,8 +32,15 @@ class _WalletScreenState extends State<WalletScreen> {
   String? _tokenBalance;
   bool _isLoadingBalance = false;
   bool _refreshScheduled = false;
+  bool _isRefreshingBalance = false;
+  bool _isSyncingHistory = false;
+  DateTime? _lastHistorySyncAt;
+  String? _lastBoundWallet;
+  Timer? _balancePollTimer;
   final _wcService = walletConnectService;
   final _historyService = transactionHistoryService;
+  final _sessionService = UserSessionService();
+  final _studentProfileService = StudentProfileService();
 
   @override
   void initState() {
@@ -37,10 +49,14 @@ class _WalletScreenState extends State<WalletScreen> {
     _historyService.addListener(_onServiceChanged);
     _wcService.init();
     _historyService.init();
+    _syncBalancePolling();
+    _syncHistoryFromBackend(force: true);
     _lifecycleListener = AppLifecycleListener(
       onStateChange: (state) {
         if (state == AppLifecycleState.resumed) {
           _wcService.resyncActiveSession();
+          _scheduleRefresh();
+          _syncHistoryFromBackend(force: true);
         }
       },
     );
@@ -49,6 +65,7 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   void dispose() {
     _lifecycleListener.dispose();
+    _balancePollTimer?.cancel();
     _wcService.removeListener(_onServiceChanged);
     _historyService.removeListener(_onServiceChanged);
     super.dispose();
@@ -56,9 +73,22 @@ class _WalletScreenState extends State<WalletScreen> {
 
   void _onServiceChanged() {
     if (mounted) setState(() {});
+    _syncBalancePolling();
+    _syncHistoryFromBackend();
+    _syncStudentWalletBinding();
+  }
+
+  void _syncBalancePolling() {
     if (_wcService.isConnected) {
+      _balancePollTimer ??= Timer.periodic(const Duration(seconds: 8), (_) {
+        _scheduleRefresh();
+      });
       _scheduleRefresh();
+      return;
     }
+
+    _balancePollTimer?.cancel();
+    _balancePollTimer = null;
   }
 
   void _scheduleRefresh() {
@@ -68,6 +98,47 @@ class _WalletScreenState extends State<WalletScreen> {
       _refreshScheduled = false;
       await _refreshTokenBalance();
     });
+  }
+
+  Future<void> _syncHistoryFromBackend({bool force = false}) async {
+    if (!_wcService.isConnected) {
+      _lastHistorySyncAt = null;
+      return;
+    }
+    if (_isSyncingHistory) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastHistorySyncAt != null &&
+        now.difference(_lastHistorySyncAt!) < const Duration(seconds: 20)) {
+      return;
+    }
+
+    _isSyncingHistory = true;
+    try {
+      await _historyService.syncFromBackend();
+      _lastHistorySyncAt = now;
+    } finally {
+      _isSyncingHistory = false;
+    }
+  }
+
+  Future<void> _syncStudentWalletBinding() async {
+    final wallet = _wcService.connectedAddress?.trim().toLowerCase();
+    if (wallet == null || wallet.isEmpty) return;
+    if (_lastBoundWallet == wallet) return;
+
+    final knummer = (await _sessionService.getKnummer())?.trim();
+    if (knummer == null || knummer.isEmpty) return;
+
+    try {
+      await _studentProfileService.bindWallet(
+        knummer: knummer,
+        walletAddress: wallet,
+      );
+      _lastBoundWallet = wallet;
+    } catch (_) {
+      // Wallet-Bind ist hilfreich, aber nicht kritisch für die UI.
+    }
   }
 
   Future<ContractAbi> _loadAbi(String assetPath, String name) async {
@@ -81,11 +152,15 @@ class _WalletScreenState extends State<WalletScreen> {
     if (!_wcService.isConnected) return;
     final address = _wcService.connectedAddress;
     if (address == null) return;
+    if (_isRefreshingBalance) return;
 
-    setState(() => _isLoadingBalance = true);
+    _isRefreshingBalance = true;
+    if (!_isLoadingBalance && mounted) {
+      setState(() => _isLoadingBalance = true);
+    }
 
+    final client = Web3Client(ContractsConfig.rpcUrl, Client());
     try {
-      final client = Web3Client(ContractsConfig.rpcUrl, Client());
       final tokenAbi = await _loadAbi('assets/abi/THWSToken.json', 'THWSToken');
       final token = DeployedContract(
         tokenAbi,
@@ -100,37 +175,90 @@ class _WalletScreenState extends State<WalletScreen> {
 
       if (result.isNotEmpty && result.first is BigInt) {
         final raw = result.first as BigInt;
+        await _syncExternalTopUpFromBalance(
+          walletAddress: address,
+          currentRaw: raw,
+        );
         const decimals = 2;
         final divisor = BigInt.from(10).pow(decimals);
         final whole = raw ~/ divisor;
         final frac = (raw % divisor).toString().padLeft(decimals, '0');
         _tokenBalance = '$whole.$frac';
+      } else {
+        _tokenBalance ??= '0.00';
       }
     } catch (_) {
-      // Prevent indefinite "Lade..." state if first load fails.
+      // Verhindert einen dauerhaften "Lade..."-Zustand beim ersten Fehlschlag.
       _tokenBalance ??= '0.00';
     } finally {
+      client.dispose();
+      _isRefreshingBalance = false;
       if (mounted) setState(() => _isLoadingBalance = false);
     }
+  }
+
+  Future<void> _syncExternalTopUpFromBalance({
+    required String walletAddress,
+    required BigInt currentRaw,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'wallet_last_synced_raw_${walletAddress.toLowerCase()}';
+    final previousRawStr = prefs.getString(key);
+
+    if (previousRawStr == null) {
+      await prefs.setString(key, currentRaw.toString());
+      return;
+    }
+
+    final previousRaw = BigInt.tryParse(previousRawStr) ?? currentRaw;
+    if (currentRaw <= previousRaw) {
+      if (currentRaw != previousRaw) {
+        await prefs.setString(key, currentRaw.toString());
+      }
+      return;
+    }
+
+    final deltaRaw = currentRaw - previousRaw;
+    final deltaAmount = deltaRaw.toDouble() / 100.0;
+    if (deltaAmount <= 0) {
+      await prefs.setString(key, currentRaw.toString());
+      return;
+    }
+
+    final now = DateTime.now();
+    await _historyService.addTransaction(
+      TransactionItem(
+        title: 'Einzahlung',
+        subtitle: 'On-chain Mint Sync',
+        amount: deltaAmount,
+        isExpense: false,
+        createdAt: now,
+      ),
+    );
+
+    await prefs.setString(key, currentRaw.toString());
   }
 
   Future<void> _connectWallet() async {
     try {
       if (_wcService.isConnected && _wcService.connectedAddress != null) {
         await _wcService.ensureSepoliaChain();
+        await _syncStudentWalletBinding();
         await _refreshTokenBalance();
         return;
       }
 
       final uri = await _wcService.connect();
       await _wcService.ensureSepoliaChain();
+      await _syncStudentWalletBinding();
       await _refreshTokenBalance();
       final target = _wcService.metamaskDeepLink ?? uri;
 
       if (target == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pairing-URI konnte nicht erstellt werden.')),
+          const SnackBar(
+              content: Text('Pairing-URI konnte nicht erstellt werden.')),
         );
         return;
       }
@@ -142,7 +270,8 @@ class _WalletScreenState extends State<WalletScreen> {
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('MetaMask konnte nicht geöffnet werden.')),
+          const SnackBar(
+              content: Text('MetaMask konnte nicht geöffnet werden.')),
         );
       }
     } catch (e) {
@@ -161,8 +290,9 @@ class _WalletScreenState extends State<WalletScreen> {
   Widget build(BuildContext context) {
     final allTransactions = [..._historyService.transactions]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final recentTransactions =
-        allTransactions.length > 3 ? allTransactions.take(3).toList() : allTransactions;
+    final recentTransactions = allTransactions.length > 3
+        ? allTransactions.take(3).toList()
+        : allTransactions;
     final totalIncome = allTransactions
         .where((tx) => !tx.isExpense)
         .fold<double>(0, (sum, tx) => sum + tx.amount.abs());
@@ -186,8 +316,6 @@ class _WalletScreenState extends State<WalletScreen> {
               onConnect: _connectWallet,
               onDisconnect: _disconnectWallet,
               onResync: _wcService.resyncActiveSession,
-              debugStatus:
-                  'connecting=${_wcService.isConnecting} connected=${_wcService.isConnected} addr=${_wcService.connectedAddress ?? "-"}',
             ),
             const SizedBox(height: 16),
             WalletBalanceCard(
@@ -229,7 +357,6 @@ class _WalletConnectCard extends StatelessWidget {
     required this.onConnect,
     required this.onDisconnect,
     required this.onResync,
-    required this.debugStatus,
   });
 
   final bool isConnecting;
@@ -239,7 +366,6 @@ class _WalletConnectCard extends StatelessWidget {
   final VoidCallback onConnect;
   final VoidCallback onDisconnect;
   final VoidCallback onResync;
-  final String debugStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -338,11 +464,6 @@ class _WalletConnectCard extends StatelessWidget {
                 child: const Text('Bestätigt, Status aktualisieren'),
               ),
             ],
-            const SizedBox(height: 8),
-            Text(
-              debugStatus,
-              style: const TextStyle(color: Colors.black38, fontSize: 12),
-            ),
           ],
         ],
       ),

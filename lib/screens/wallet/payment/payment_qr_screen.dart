@@ -86,18 +86,19 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
     required BigInt orderId,
     required String payer,
   }) async {
-    final uri = Uri.parse('${ContractsConfig.backendUrl}/api/mensa/payment-signature');
+    final uri =
+        Uri.parse('${ContractsConfig.backendUrl}/api/mensa/payment-signature');
     final resp = await http
         .post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'amount': amount,
-        'orderId': orderId.toInt(),
-        'payer': payer,
-        'expirySeconds': 300,
-      }),
-    )
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'amount': amount,
+            'orderId': orderId.toInt(),
+            'payer': payer,
+            'expirySeconds': 300,
+          }),
+        )
         .timeout(const Duration(seconds: 15));
 
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
@@ -144,7 +145,8 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
     throw Exception('Ungültiger Zahlenwert in der Signaturantwort.');
   }
 
-  Future<String?> _payMensa({required int amount, required BigInt orderId}) async {
+  Future<String?> _payMensa(
+      {required int amount, required BigInt orderId}) async {
     if (!_wcService.isConnected) {
       throw Exception('Wallet ist nicht verbunden.');
     }
@@ -162,7 +164,8 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
     final s = _hexToBytes32(sig['s'] as String);
 
     final tokenAbi = await _loadAbi('assets/abi/THWSToken.json', 'THWSToken');
-    final pmAbi = await _loadAbi('assets/abi/PaymentManager.json', 'PaymentManager');
+    final pmAbi =
+        await _loadAbi('assets/abi/PaymentManager.json', 'PaymentManager');
 
     final tokenContract = DeployedContract(
       tokenAbi,
@@ -208,9 +211,10 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
         EthereumAddress.fromHex(ContractsConfig.paymentManager),
       ],
     );
-    final allowance = allowanceResult.isNotEmpty && allowanceResult.first is BigInt
-        ? allowanceResult.first as BigInt
-        : BigInt.zero;
+    final allowance =
+        allowanceResult.isNotEmpty && allowanceResult.first is BigInt
+            ? allowanceResult.first as BigInt
+            : BigInt.zero;
 
     if (allowance < BigInt.from(amount)) {
       if (mounted) {
@@ -222,6 +226,7 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
             data: approveData,
           )
           .timeout(const Duration(seconds: 90));
+      await _openMetaMask();
       await approveFuture;
     }
 
@@ -234,11 +239,12 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
           data: payData,
         )
         .timeout(const Duration(seconds: 90));
+    await _openMetaMask();
     return await payFuture;
   }
 
   ({int amount, BigInt orderId}) _parseQrPayload(String raw) {
-    // Default fallback for plain MENSA QR.
+    // Standard-Fallback für einfache MENSA-QR-Codes.
     int amount = 500;
     BigInt orderId = BigInt.from(DateTime.now().millisecondsSinceEpoch);
 
@@ -246,7 +252,7 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
       return (amount: amount, orderId: orderId);
     }
 
-    // Legacy employee format support:
+    // Unterstützung für altes Mitarbeitendenformat:
     // payment|amount=12.50|nonce=1730000000000
     if (raw.startsWith('payment|')) {
       final parts = raw.split('|');
@@ -334,6 +340,10 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
         amount: payload.amount,
         orderId: payload.orderId,
       );
+      if (txHash == null || txHash.isEmpty) {
+        throw Exception('Keine Transaktions-Hash von MetaMask erhalten.');
+      }
+      await _wcService.waitForTransactionSuccess(txHash);
       final now = DateTime.now();
       await _historyService.addTransaction(
         TransactionItem(
@@ -359,7 +369,7 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
           _isPaying = false;
           _paymentStatus = 'QR-Code in den Rahmen halten';
           if (!success) {
-            // Allow rescanning on failure without leaving the page.
+            // Bei Fehler erneutes Scannen erlauben, ohne die Seite zu verlassen.
             _scanned = false;
           }
         });
@@ -452,7 +462,6 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
                 ),
               ),
             ),
-
           Center(
             child: Container(
               width: 260,
@@ -466,7 +475,6 @@ class _PaymentQrScreenState extends State<PaymentQrScreen> {
               ),
             ),
           ),
-
           Positioned(
             left: 0,
             right: 0,

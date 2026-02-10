@@ -37,8 +37,8 @@ class RoleSelectionScreen extends StatelessWidget {
 
               _RoleCard(
                 icon: Icons.school,
-                title: 'Student / User',
-                subtitle: 'Zahlungen & Services nutzen',
+                title: 'Studierende',
+                subtitle: 'Zahlungen & Dienste nutzen',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -54,7 +54,7 @@ class RoleSelectionScreen extends StatelessWidget {
 
               _RoleCard(
                 icon: Icons.badge,
-                title: 'Employee',
+                title: 'Mitarbeitende',
                 subtitle: 'Verwaltung & Kontrolle',
                 onTap: () {
                   Navigator.push(

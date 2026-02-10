@@ -94,7 +94,7 @@ class HelpSupportScreen extends StatelessWidget {
               _LinkCard(
                 title: 'THWS – HSST (Hochschulservice Studium)',
                 subtitle:
-                    'Organisation, Services und Anlaufstellen rund ums Studium.',
+                    'Organisation, Dienste und Anlaufstellen rund ums Studium.',
                 url:
                     'https://www.thws.de/hochschule/organisation/hochschulservices/hochschulservice-studium/',
                 leading: const _LogoCircle(assetPath: 'assets/icons/thws.png'),
