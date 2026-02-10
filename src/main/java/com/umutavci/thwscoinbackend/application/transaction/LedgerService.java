@@ -51,6 +51,21 @@ public class LedgerService {
     }
 
     @Transactional
+    public void recordTopUpConfirmedOnChain(Long studentId,
+                                            Long amountCents,
+                                            String txHash,
+                                            String externalRef) {
+        LedgerTransactionEntity tx = new LedgerTransactionEntity();
+        tx.setStudentUserId(studentId);
+        tx.setType(LedgerTxType.TOP_UP);
+        tx.setStatus(LedgerTxStatus.CONFIRMED);
+        tx.setAmountCents(Math.abs(amountCents));
+        tx.setTxHash(txHash);
+        tx.setExternalRef(externalRef);
+        ledgerRepo.save(tx);
+    }
+
+    @Transactional
     public void confirmTopUp(String externalRef) {
         LedgerTransactionEntity tx = ledgerRepo.findAll().stream()
                 .filter(t -> externalRef.equals(t.getExternalRef()))
@@ -68,4 +83,3 @@ public class LedgerService {
         return ledgerRepo.findByStudentUserIdOrderByCreatedAtDesc(studentId);
     }
 }
-

@@ -52,7 +52,9 @@ public class StudentProfileEntity {
     @Column(length = 80)
     private String campus;
 
+    @Column(name = "wallet_address", length = 42, unique = true)
+    private String walletAddress;
+
     @Column(name = "valid_until")
     private LocalDate validUntil;
 }
-

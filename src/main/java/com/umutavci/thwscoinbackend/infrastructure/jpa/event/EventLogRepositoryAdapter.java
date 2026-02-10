@@ -13,7 +13,7 @@ public class EventLogRepositoryAdapter implements EventLogRepository {
 
     @Override
     public boolean exists(String eventId) {
-        return repo.existsById(Long.valueOf(eventId));
+        return repo.existsById(eventId);
     }
 
     @Override
@@ -26,4 +26,3 @@ public class EventLogRepositoryAdapter implements EventLogRepository {
         ));
     }
 }
-

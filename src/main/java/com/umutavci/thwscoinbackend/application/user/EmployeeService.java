@@ -31,6 +31,7 @@ public class EmployeeService {
 
         EmployeeProfileEntity profile = new EmployeeProfileEntity();
         profile.setUser(user);
+        profile.setUsername(req.username());
         employeeRepo.save(profile);
 
         return new EmployeeResponse(user.getId(), user.getUsername());

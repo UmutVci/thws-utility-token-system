@@ -7,7 +7,6 @@ import com.umutavci.thwscoinbackend.domain.event.EventLogRepository;
 import com.umutavci.thwscoinbackend.domain.event.EventStateRepository;
 import com.umutavci.thwscoinbackend.domain.mensa.MensaOrder;
 import com.umutavci.thwscoinbackend.infrastructure.blockchain.PaymentManager;
-import com.umutavci.thwscoinbackend.infrastructure.config.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,28 +18,22 @@ public class EventProcessor {
     private final EventStateRepository eventStateRepo;
     private final MensaOrderUseCases mensaUseCases;
     private final LedgerService ledgerService;
-    private final CurrentUserProvider currentUserProvider;
-
-
 
     public void processServicePayment(PaymentManager.ServicePaymentEventResponse event) {
-
         String eventId = event.log.getTransactionHash() + "-" + event.log.getLogIndex();
 
-
-        //  Idempotency
+        // Idempotency
         if (eventLogRepo.exists(eventId)) {
             return;
         }
-        // ⃣ Business logic
+
         long orderId = event.orderId.longValue();
         String txHash = event.log.getTransactionHash();
 
-        MensaOrder order = mensaUseCases.getOrder(orderId, currentUserProvider.getCurrentUserId());
-
+        // Listener contextinde authenticated user bulunmaz; order direct okunur.
+        MensaOrder order = mensaUseCases.getOrder(orderId, 0L);
         mensaUseCases.markOrderPaid(orderId, txHash);
 
-        // Event log
         eventLogRepo.save(new EventLog(
                 eventId,
                 event.log.getBlockNumber().longValue(),
@@ -48,7 +41,6 @@ public class EventProcessor {
                 Integer.parseInt(String.valueOf(event.log.getLogIndex()))
         ));
 
-        //  update lastProcessedBlock
         eventStateRepo.updateLastProcessedBlock(
                 event.log.getBlockNumber().longValue()
         );
@@ -61,4 +53,3 @@ public class EventProcessor {
         );
     }
 }
-

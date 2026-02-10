@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping({"/auth", "/api/auth"})
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -23,13 +23,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@RequestBody LoginRequest request) {
+        String principal = resolvePrincipal(request);
 
         Authentication authentication = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(), request.password())
+                new UsernamePasswordAuthenticationToken(principal, request.password())
         );
 
-        UserEntity user = userRepo.findByUsername(request.username())
+        UserEntity user = userRepo.findByUsername(principal)
                 .orElseThrow();
 
         return new AuthResponse(
@@ -40,7 +40,6 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public AuthResponse refresh(@RequestBody RefreshRequest request) {
-
         String username = jwtService.extractUsername(request.refreshToken());
 
         UserEntity user = userRepo.findByUsername(username)
@@ -51,10 +50,23 @@ public class AuthController {
                 jwtService.generateRefreshToken(user)
         );
     }
-    public record LoginRequest(String username, String password) {}
-    public record AuthResponse(String accessToken, String refreshToken) {}
-    public record RefreshRequest(String refreshToken) {}
 
+    private String resolvePrincipal(LoginRequest request) {
+        if (request.username() != null && !request.username().isBlank()) {
+            return request.username().trim();
+        }
+        if (request.knummer() != null && !request.knummer().isBlank()) {
+            return request.knummer().trim();
+        }
+        throw new IllegalArgumentException("username or knummer is required");
+    }
+
+    public record LoginRequest(String username, String knummer, String password) {
+    }
+
+    public record AuthResponse(String accessToken, String refreshToken) {
+    }
+
+    public record RefreshRequest(String refreshToken) {
+    }
 }
-
-
